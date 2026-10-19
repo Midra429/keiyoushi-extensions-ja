@@ -75,7 +75,7 @@ jobs:
           for module in "${MODULES[@]}"; do
             TASKS+=("${module}:assembleRelease" "${module}:lintRelease")
           done
-          TASKS+=(":lib-multisrc:gigaviewer:lintRelease" ":src:ja:bookwalkerjp:testDebugUnitTest")
+          TASKS+=(":lib-multisrc:gigaviewer:lintRelease" ":src:ja:dmm:testDebugUnitTest" ":src:ja:bookwalkerjp:testDebugUnitTest")
           ./gradlew "${TASKS[@]}"
       - name: Generate store index
         if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
@@ -96,6 +96,7 @@ jobs:
             src/ja/*/build/outputs/jar/release/*.jar
             src/ja/*/build/reports/lint-results-release.*
             src/ja/bookwalkerjp/build/reports/tests/testDebugUnitTest/**
+            src/ja/dmm/build/reports/tests/testDebugUnitTest/**
           retention-days: 14
       - name: Upload signed store
         if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
