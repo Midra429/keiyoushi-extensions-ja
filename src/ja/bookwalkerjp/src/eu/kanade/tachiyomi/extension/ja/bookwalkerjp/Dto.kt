@@ -22,7 +22,7 @@ class DetailsResponse(
         get() = seriesId?.toString() ?: "de$uuid"
 
     val mangaTitle: String
-        get() = seriesName ?: productName
+        get() = seriesName?.takeUnless(String::isBlank) ?: productName
 
     fun toSManga() = SManga.create().apply {
         url = mangaUrl

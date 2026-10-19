@@ -11,15 +11,35 @@ class StandaloneBookTest {
     private val bookUrl = "https://bookwalker.jp/de48f2f317-3551-47b3-93a2-152211fafa60/"
     private val details get() = fixture("standalone-details.json")
 
-    private fun fixture(name: String): DetailsResponse = javaClass.getResourceAsStream("/$name")!!.bufferedReader().use {
-        json.decodeFromString<List<DetailsResponse>>(it.readText()).single()
-    }
+    private fun fixture(name: String, transform: (String) -> String = { it }): DetailsResponse =
+        javaClass.getResourceAsStream("/$name")!!.bufferedReader().use {
+            json.decodeFromString<List<DetailsResponse>>(transform(it.readText())).single()
+        }
 
     @Test
     fun `a standalone book retains its uuid and product title when series fields are null`() {
         assertNull(details.seriesId)
         assertEquals("de48f2f317-3551-47b3-93a2-152211fafa60", details.mangaUrl)
         assertEquals("超かぐや姫！ 公式ガイドブック ハッピーエンドのその先へ！", details.mangaTitle)
+    }
+
+    @Test
+    fun `a purchased standalone book uses its product title when the series name is blank`() {
+        val document = Jsoup.parse(
+            """<div id="js-read-check"><div class="t-c-read-button"><a href="https://viewer.bookwalker.jp/full-reader">ブラウザで読む</a></div></div>""",
+            bookUrl,
+        )
+        for (seriesName in listOf("", "   ")) {
+            val details = fixture("standalone-details.json") {
+                it.replace("\"seriesName\": null", "\"seriesName\": \"$seriesName\"")
+            }
+            val title = "超かぐや姫！ 公式ガイドブック ハッピーエンドのその先へ！"
+            assertEquals(title, details.mangaTitle)
+            val chapter = document.toStandaloneChapter(details, hideLocked = true, hideFree = true)!!
+            assertEquals(title, chapter.name)
+            assertEquals("48f2f317-3551-47b3-93a2-152211fafa60", chapter.uuid)
+            assertEquals("https://viewer.bookwalker.jp/full-reader", chapter.viewerUrl)
+        }
     }
 
     @Test
@@ -76,7 +96,8 @@ class StandaloneBookTest {
 
     @Test
     fun `a book without a reader is locked and keeps its real book url`() {
-        val document = Jsoup.parse("<div id='js-read-check'><div id='js-read-check-book-cover-main-button'></div></div>", bookUrl)
+        val document =
+            Jsoup.parse("<div id='js-read-check'><div id='js-read-check-book-cover-main-button'></div></div>", bookUrl)
         assertNull(document.toStandaloneChapter(details, hideLocked = true, hideFree = true))
         val chapter = document.toStandaloneChapter(details, hideLocked = false, hideFree = true)!!
         assertEquals("🔒 ${details.mangaTitle}", chapter.name)
@@ -126,6 +147,9 @@ class StandaloneBookTest {
             bookUrl,
         )
         assertNull(document.toStandaloneChapter(details, hideLocked = true, hideFree = true))
-        assertEquals("${bookUrl}?sample=1", document.toStandaloneChapter(details, hideLocked = false, hideFree = true)!!.viewerUrl)
+        assertEquals(
+            "${bookUrl}?sample=1",
+            document.toStandaloneChapter(details, hideLocked = false, hideFree = true)!!.viewerUrl
+        )
     }
 }
