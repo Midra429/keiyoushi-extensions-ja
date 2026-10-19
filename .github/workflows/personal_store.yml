@@ -9,6 +9,7 @@ on:
       - 'src/ja/tonarinoyoungjump/**'
       - 'src/ja/kadocomi/**'
       - 'src/ja/bookwalkerjp/**'
+      - 'src/ja/onepunchman/**'
       - 'lib/**'
       - 'lib-multisrc/gigaviewer/**'
       - 'core/**'
