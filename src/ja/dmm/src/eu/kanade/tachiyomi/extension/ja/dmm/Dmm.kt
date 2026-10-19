@@ -69,22 +69,12 @@ abstract class Dmm :
     }
 
     override suspend fun getPopularManga(page: Int): MangasPage {
-        val url = "$baseUrl/list/".toHttpUrl().newBuilder().apply {
-            addQueryParameter("sort", "ranking")
-            if (page > 1) {
-                addQueryParameter("page", page.toString())
-            }
-        }.build()
+        val url = listingRequestUrl(baseUrl, page, "ranking")
         return client.get(url, desktopHeaders).toMangasPage()
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
-        val url = "$baseUrl/list/".toHttpUrl().newBuilder().apply {
-            addQueryParameter("sort", "date")
-            if (page > 1) {
-                addQueryParameter("page", page.toString())
-            }
-        }.build()
+        val url = listingRequestUrl(baseUrl, page, "date")
         return client.get(url, desktopHeaders).toMangasPage()
     }
 
@@ -92,10 +82,7 @@ abstract class Dmm :
         if (filters.firstInstanceOrNull<LibraryFilter>()?.state == true) {
             return getLibraryManga(page)
         }
-        val url = "$baseUrl/search/".toHttpUrl().newBuilder()
-            .addQueryParameter("searchstr", query)
-            .addQueryParameter("page", page.toString())
-            .build()
+        val url = searchRequestUrl(baseUrl, page, query)
         return client.get(url, desktopHeaders).toMangasPage()
     }
 
