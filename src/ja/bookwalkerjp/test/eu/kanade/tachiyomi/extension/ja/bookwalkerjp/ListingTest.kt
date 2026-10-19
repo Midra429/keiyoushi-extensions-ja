@@ -10,7 +10,7 @@ class ListingTest {
     private val cover = "https://rimg.bookwalker.jp/8866361/eUnObgIVNjRTJtVUNQrbaQ__.jpg"
 
     @Test
-    fun `desktop listings retain native thumbnails without changing the document order`() {
+    fun `desktop listings use high resolution covers without changing the document order`() {
         val document = Jsoup.parse(
             """
             <ul>
@@ -28,7 +28,13 @@ class ListingTest {
         )
         val tiles = document.select(".m-tile")
 
-        assertEquals(listOf(cover, "$baseUrl/thumbnailImage_123.jpg"), tiles.map { it.listingCoverUrl() })
+        assertEquals(
+            listOf(
+                "https://c.bookwalker.jp/coverImage_1636687.jpg#$cover",
+                "https://c.bookwalker.jp/coverImage_122.jpg#$baseUrl/thumbnailImage_123.jpg",
+            ),
+            tiles.map { it.listingCoverUrl() },
+        )
         assertEquals(
             listOf("/series/47597/list/", "/de48f2f317-3551-47b3-93a2-152211fafa60/"),
             tiles.map { it.selectFirst("a.m-book-item__title")!!.attr("href") },
@@ -36,13 +42,31 @@ class ListingTest {
     }
 
     @Test
-    fun `mobile series listings keep native covers`() {
+    fun `mobile series listings use high resolution covers`() {
         val tile = Jsoup.parse(
             """<div class="o-tile--series"><div class="o-tile-book-img"><img data-original="$cover"></div></div>""",
             baseUrl,
         ).selectFirst(".o-tile--series")!!
 
-        assertEquals(cover, tile.listingCoverUrl())
+        assertEquals("https://c.bookwalker.jp/coverImage_1636687.jpg#$cover", tile.listingCoverUrl())
+    }
+
+    @Test
+    fun `unrecognized cover ids preserve the original URL`() {
+        val url = "https://rimg.bookwalker.jp/2199dd559dc592b90d4c861f8f7fd7b/eUnObgIVNjRTJtVUNQrbaQ__.jpg"
+        assertEquals(url, url.getHiResCoverFromLegacyUrl())
+    }
+
+    @Test
+    fun `an existing full size cover is not rewritten`() {
+        val url = "https://c.bookwalker.jp/coverImage_1636687.jpg#$cover"
+        assertEquals(url, url.getHiResCoverFromLegacyUrl())
+    }
+
+    @Test
+    fun `legacy thumbnails retain the original URL for the interceptor fallback`() {
+        val url = "https://c.bookwalker.jp/thumbnailImage_1636688.jpg"
+        assertEquals("https://c.bookwalker.jp/coverImage_1636687.jpg#$url", url.getHiResCoverFromLegacyUrl())
     }
 
     @Test
