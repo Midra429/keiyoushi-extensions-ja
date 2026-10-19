@@ -27,7 +27,7 @@
 https://github.com/Midra429/keiyoushi-extensions-ja/releases/latest/download/index.pb
 ```
 
-初回リリース公開後に利用できます。新しい拡張API 1.6に対応したMihon・TachiyomiSY・Komikkuが対象です。Komikku v1.14.1のインデックス読み込み実装に合わせた、gzip圧縮Protobuf形式の`index.pb`を生成します。
+リリースで配布されるインデックスです。新しい拡張API 1.6に対応したMihon・TachiyomiSY・Komikkuが対象です。Komikku v1.14.1のインデックス読み込み実装に合わせた、gzip圧縮Protobuf形式の`index.pb`を生成します。
 
 ## 既存の拡張から切り替える
 
@@ -44,7 +44,7 @@ https://github.com/Midra429/keiyoushi-extensions-ja/releases/latest/download/ind
 
 - DMM/FANZA：WebViewでログインしたアカウントの本棚からシリーズを取得します。
 - ブックウォーカー：購入一覧APIへシリーズ表示を明示し、HTTPキャッシュを使わず取得します。シリーズ情報がない単独書籍は書籍IDを保持します。
-- 両サービスのログイン済み購入データを使った実機確認は未実施です。公開前の確認項目を下記に記載しています。
+- 両サービスのログイン済み購入データを使った実機確認は未実施です。実機確認項目を下記に記載しています。
 
 ## ブックウォーカーの無料章
 
