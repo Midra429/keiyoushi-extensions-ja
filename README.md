@@ -6,7 +6,13 @@ Keiyoushiの拡張機能を日本語化・改修した個人用フォークで�
 
 利用方法・変更内容・ビルド方法・実機確認の状況は[日本語ガイド](README-JA.md)を参照してください。
 
-ストアの公開は準備中です。現在、GitHub上で利用できるストアURLはまだありません。
+Mihon・TachiyomiSY・Komikkuの拡張ストアに追加するURL：
+
+```text
+https://github.com/Midra429/keiyoushi-extensions-ja/releases/latest/download/index.pb
+```
+
+新しい拡張API 1.6に対応したバージョンが必要です。Komikku v1.14.1が対象です。購入済み一覧の実アカウント確認と、Android実機での読書動作確認は未実施です。
 
 - 上流：[keiyoushi/extensions-source](https://github.com/keiyoushi/extensions-source)
 - ライセンス：[Apache License 2.0](LICENSE)
