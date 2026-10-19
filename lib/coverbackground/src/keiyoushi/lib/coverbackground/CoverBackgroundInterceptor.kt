@@ -10,24 +10,31 @@ import okhttp3.ResponseBody.Companion.asResponseBody
 import okio.Buffer
 import java.io.IOException
 
-private const val COVER_MARKER = "keiyoushi-cover-v1:"
+private const val COVER_MARKER = "keiyoushi-cover-v2:"
+private const val LEGACY_COVER_MARKER = "keiyoushi-cover-v1:"
+
+private fun String.originalCoverFragment(): String? = when {
+    startsWith(COVER_MARKER) -> removePrefix(COVER_MARKER)
+    startsWith(LEGACY_COVER_MARKER) -> removePrefix(LEGACY_COVER_MARKER)
+    else -> null
+}
 
 /** Marks a cover for 2:3 padding, retaining any fragment needed by downstream interceptors. */
 fun String?.withCoverBackground(): String? {
     val url = this?.toHttpUrlOrNull() ?: return this
     if (url.fragment?.startsWith(COVER_MARKER) == true) return this
-    return url.newBuilder().fragment(COVER_MARKER + url.fragment.orEmpty()).build().toString()
+    val fragment = url.fragment.orEmpty()
+    return url.newBuilder().fragment(COVER_MARKER + (fragment.originalCoverFragment() ?: fragment)).build().toString()
 }
 
 /** Install before other image interceptors. Only marked covers are transformed; pages are untouched. */
 class CoverBackgroundInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val fragment = request.url.fragment
-        if (fragment?.startsWith(COVER_MARKER) != true) return chain.proceed(request)
+        val fragment = request.url.fragment?.originalCoverFragment() ?: return chain.proceed(request)
 
         val url = request.url.newBuilder()
-            .fragment(fragment.removePrefix(COVER_MARKER).ifEmpty { null })
+            .fragment(fragment.ifEmpty { null })
             .build()
         val response = chain.proceed(request.newBuilder().url(url).build())
         if (!response.isSuccessful) return response

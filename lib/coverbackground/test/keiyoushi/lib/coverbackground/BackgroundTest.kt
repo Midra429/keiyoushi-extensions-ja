@@ -41,6 +41,28 @@ class BackgroundTest {
     }
 
     @Test
+    fun `backgrounds are slightly brighter while retaining adaptive dimming`() {
+        for ((color, expected) in listOf(Color.WHITE to 104, Color.rgb(128, 128, 128) to 68)) {
+            val original = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
+            original.eraseColor(color)
+            val output = renderCoverBackground(original)
+            try {
+                val background = output.getPixel(60, 15)
+                assertTrue(
+                    "Expected background near $expected, got ${Color.red(background)}",
+                    Color.red(background) in expected - 2..expected + 2
+                )
+                assertEquals(Color.red(background), Color.green(background))
+                assertEquals(Color.red(background), Color.blue(background))
+                assertEquals(color, output.getPixel(60, 90))
+            } finally {
+                original.recycle()
+                output.recycle()
+            }
+        }
+    }
+
+    @Test
     fun `tall covers get side padding without cropping their top and bottom`() {
         val original = Bitmap.createBitmap(60, 180, Bitmap.Config.ARGB_8888)
         original.eraseColor(Color.GREEN)

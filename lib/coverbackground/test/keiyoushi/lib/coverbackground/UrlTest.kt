@@ -27,6 +27,17 @@ class UrlTest {
     }
 
     @Test
+    fun `previously marked covers get a new cache key without nesting markers`() {
+        for (fragment in listOf("", "https://example.com/fallback.jpg?x=1&y=2#inner")) {
+            val original = "https://example.com/cover.jpg#keiyoushi-cover-v1:$fragment"
+            val marked = original.withCoverBackground()
+            assertEquals("https://example.com/cover.jpg#keiyoushi-cover-v2:$fragment", marked)
+            assertEquals(marked, marked.withCoverBackground())
+            assertNotEquals(original, marked)
+        }
+    }
+
+    @Test
     fun `original URL fragments and request headers are restored for downstream interceptors`() {
         for (url in listOf(
             "https://example.com/cover.jpg",
@@ -48,8 +59,11 @@ class UrlTest {
                         .build()
                 }
                 .build()
-            client.newCall(Request.Builder().url(url.withCoverBackground()!!).header("Referer", "keep me").build())
-                .execute().close()
+            val marked = url.withCoverBackground()!!
+            for (cover in listOf(marked, marked.replace("#keiyoushi-cover-v2:", "#keiyoushi-cover-v1:"))) {
+                client.newCall(Request.Builder().url(cover).header("Referer", "keep me").build())
+                    .execute().close()
+            }
         }
     }
 }

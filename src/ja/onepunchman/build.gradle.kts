@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "ワンパンマン（ＯＮＥ）"
-    versionCode = 2
+    versionCode = 3
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 
