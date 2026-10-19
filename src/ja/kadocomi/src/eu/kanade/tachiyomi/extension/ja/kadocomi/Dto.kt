@@ -63,7 +63,7 @@ class Work(
         thumbnail_url = bookCover ?: originalThumbnail
         description = buildString {
             summary?.let { append(it) }
-            nextUpdateDateText?.let { append("\n\nNext Update: $nextUpdateDateText") }
+            nextUpdateDateText?.let { append("\n\n次回更新： $nextUpdateDateText") }
         }
         author = authors.orEmpty().filter { it.role in AUTHOR_ROLES }.joinToString { it.name }.ifEmpty { null }
         artist = authors.orEmpty().filter { it.role in ARTIST_ROLES }.joinToString { it.name }.ifEmpty { null }

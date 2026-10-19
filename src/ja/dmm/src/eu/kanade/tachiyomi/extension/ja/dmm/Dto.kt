@@ -111,7 +111,7 @@ class VolumeBook(
 
     fun toSChapter(seriesId: String): SChapter = SChapter.create().apply {
         val lock = if (isLocked) "🔒 " else ""
-        val preview = if (isPreview) "(Preview) " else ""
+        val preview = if (isPreview) "（試し読み） " else ""
         url = contentId
         name = lock + preview + title
         date_upload = Instant.tryParse(contentPublishDate)

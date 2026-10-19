@@ -4,7 +4,7 @@ import eu.kanade.tachiyomi.source.model.Filter
 
 class SearchFilter :
     SelectFilter(
-        "Search by",
+        "検索対象",
         arrayOf(
             "電子書籍一覧" to "0",
             "話・連載" to "1",
@@ -13,7 +13,7 @@ class SearchFilter :
 
 class SortFilter :
     SelectFilter(
-        "Sort by",
+        "並び順",
         arrayOf(
             "人気順" to "rank",
             "適合順" to "score",

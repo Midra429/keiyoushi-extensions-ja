@@ -1,0 +1,12 @@
+{
+  "name": "日本語拡張ストア（個人用）",
+  "badgeLabel": "JA",
+  "repository": "Midra429/keiyoushi-extensions-ja",
+  "modules": [
+    "ja/dmm",
+    "ja/shonenjumpplus",
+    "ja/tonarinoyoungjump",
+    "ja/kadocomi",
+    "ja/bookwalkerjp"
+  ]
+}

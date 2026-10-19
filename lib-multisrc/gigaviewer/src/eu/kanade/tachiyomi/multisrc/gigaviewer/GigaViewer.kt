@@ -186,7 +186,7 @@ abstract class GigaViewer :
             .parseAs<ViewerDto>().readableProduct.pageStructure
 
         if (pageStructure == null || pageStructure.pages.isEmpty()) {
-            throw Exception("This chapter is either unavailable or must be purchased.")
+            throw Exception("この章は公開されていないか、購入が必要です。")
         }
 
         val isScrambled = pageStructure.choJuGiga == "baku"
@@ -216,13 +216,13 @@ abstract class GigaViewer :
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
             key = HIDE_LOCKED_PREF_KEY
-            title = "Hide Paid Chapters"
+            title = "有料の章を非表示にする"
             setDefaultValue(false)
         }.also(screen::addPreference)
 
         SwitchPreferenceCompat(screen.context).apply {
             key = HIDE_UNAVAILABLE_PREF_KEY
-            title = "Hide Unavailable Chapters"
+            title = "公開されていない章を非表示にする"
             setDefaultValue(false)
         }.also(screen::addPreference)
     }

@@ -9,7 +9,7 @@ open class SelectFilter(displayName: String, private val vals: Array<Pair<String
 
 class SortFilter :
     SelectFilter(
-        "Sort by",
+        "並び順",
         arrayOf(
             "人気順" to "popularity",
             "更新順" to "update",

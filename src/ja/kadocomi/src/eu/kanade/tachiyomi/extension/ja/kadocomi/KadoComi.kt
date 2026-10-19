@@ -74,7 +74,7 @@ abstract class KadoComi :
     }
 
     override fun getFilterList(data: JsonElement?) = FilterList(
-        Filter.Header("Note: Search and filters are applied together"),
+        Filter.Header("検索語とフィルターは併用できます。"),
         SortFilter(),
     )
 
@@ -105,7 +105,7 @@ abstract class KadoComi :
             .build()
 
         val manuscript = client.get(url).parseAs<ViewerResponse>().manuscripts
-        if (manuscript.isEmpty()) throw Exception("このチャプターは非公開です\nChapter is not available!")
+        if (manuscript.isEmpty()) throw Exception("この章は現在公開されていません。")
         return manuscript.mapIndexed { index, pages ->
             Page(index, imageUrl = "${pages.drmImageUrl}#${pages.drmHash}")
         }
@@ -118,7 +118,7 @@ abstract class KadoComi :
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
             key = HIDE_LOCKED_PREF_KEY
-            title = "Hide Unavailable Chapters"
+            title = "公開されていない章を非表示にする"
             setDefaultValue(false)
         }.also(screen::addPreference)
     }
