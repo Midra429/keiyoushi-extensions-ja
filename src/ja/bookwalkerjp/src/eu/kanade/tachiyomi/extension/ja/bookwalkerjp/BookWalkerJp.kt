@@ -49,9 +49,13 @@ abstract class BookWalkerJp :
     private val trialUrl get() = "https://viewer-trial.$DOMAIN"
     private val dfViewer get() = "https://viewer-df.$DOMAIN"
     private val preferences by getPreferencesLazy()
-    private val desktopHeaders get() = headersBuilder()
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36")
-        .build()
+    private val desktopHeaders
+        get() = headersBuilder()
+            .set(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+            )
+            .build()
 
     override fun OkHttpClient.Builder.configureClient() = apply {
         addInterceptor(CoverBackgroundInterceptor())
@@ -61,20 +65,12 @@ abstract class BookWalkerJp :
     }
 
     override suspend fun getPopularManga(page: Int): MangasPage {
-        val url = "$baseUrl/category/2/".toHttpUrl().newBuilder()
-            .addQueryParameter("order", "rank")
-            .addQueryParameter("np", "0")
-            .addQueryParameter("page", page.toString())
-            .build()
+        val url = categoryListingUrl(baseUrl, "rank", page)
         return client.get(url, desktopHeaders).asJsoup().toMangasPage()
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
-        val url = "$baseUrl/category/2/".toHttpUrl().newBuilder()
-            .addQueryParameter("order", "release")
-            .addQueryParameter("np", "0")
-            .addQueryParameter("page", page.toString())
-            .build()
+        val url = categoryListingUrl(baseUrl, "release", page)
         return client.get(url, desktopHeaders).asJsoup().toMangasPage()
     }
 
@@ -113,20 +109,6 @@ abstract class BookWalkerJp :
         LibraryFilter(),
     )
 
-    private fun Document.toMangasPage(): MangasPage {
-        val mangas = select(".m-tile, .o-tile--series").map {
-            val link = it.selectFirst("a.m-book-item__title, .o-tile-ttl a")!!
-            SManga.create().apply {
-                title = link.text()
-                thumbnail_url = it.listingCoverUrl()
-                val href = link.absUrl("href").toHttpUrl().pathSegments
-                url = (if (href.first() == "series") href[1] else href[0])
-            }
-        }
-
-        return MangasPage(mangas, hasNextPage())
-    }
-
     override suspend fun fetchMangaUpdate(
         manga: SManga,
         chapters: List<SChapter>,
@@ -145,8 +127,13 @@ abstract class BookWalkerJp :
             chapters = when {
                 !fetchChapters -> chapters
                 wayomi -> seriesDoc.toWayomiChapters(hideLocked, hideFree)
-                details.seriesId == null -> client.get("$baseUrl/${details.mangaUrl}/", desktopHeaders, cacheControl = CacheControl.FORCE_NETWORK).asJsoup()
+                details.seriesId == null -> client.get(
+                    "$baseUrl/${details.mangaUrl}/",
+                    desktopHeaders,
+                    cacheControl = CacheControl.FORCE_NETWORK,
+                ).asJsoup()
                     .toStandaloneChapter(details, hideLocked, hideFree)?.let { listOf(it.toSChapter()) }.orEmpty()
+
                 else -> chapterList(details.seriesId.toString(), hideLocked, hideFree, firstListPage)
             },
         )
@@ -154,7 +141,11 @@ abstract class BookWalkerJp :
 
     override fun getMangaUrl(manga: SManga): String = if (manga.url.startsWith("de")) "$baseUrl/${manga.url}/" else "$baseUrl/series/${manga.url}/list/"
 
-    private suspend fun fetchBookDetails(manga: SManga, seriesDoc: Document?, wayomi: Boolean): Pair<DetailsResponse, Document?> {
+    private suspend fun fetchBookDetails(
+        manga: SManga,
+        seriesDoc: Document?,
+        wayomi: Boolean,
+    ): Pair<DetailsResponse, Document?> {
         var firstListPage: Document? = null
         val bookId = when {
             manga.url.startsWith("de") -> manga.url
@@ -167,7 +158,12 @@ abstract class BookWalkerJp :
         return details to firstListPage
     }
 
-    private suspend fun chapterList(seriesId: String, hideLocked: Boolean, hideFree: Boolean, firstPage: Document? = null): List<SChapter> {
+    private suspend fun chapterList(
+        seriesId: String,
+        hideLocked: Boolean,
+        hideFree: Boolean,
+        firstPage: Document? = null,
+    ): List<SChapter> {
         val chapters = mutableListOf<SChapter>()
         var page = 1
         var document = firstPage ?: client.get(seriesListUrl(seriesId, page), desktopHeaders).asJsoup()
@@ -242,8 +238,9 @@ abstract class BookWalkerJp :
 
     private fun seriesUrl(seriesId: String): HttpUrl = "$baseUrl/series/$seriesId/".toHttpUrl()
     private fun Document.firstEpisodeId(): String = "de" + selectFirst(".p-episode__list a[data-book-uuid]")!!.attr("data-book-uuid")
+
     private fun Document.firstBookId(): String = selectFirst(".m-tile-list .m-book-item")!!.bookId()
-    private fun Document.hasNextPage(): Boolean = selectFirst(".o-pager-next a:not(.o-pager-box-btn_hidden), a[data-action-label=次のページへ]:not(.o-pager-box-btn_hidden)") != null
+
     private fun Element.bookLink(): Element = selectFirst("a.m-book-item__title")!!
     private fun Element.bookId(): String = bookLink().absUrl("href").toHttpUrl().pathSegments.first()
 
@@ -264,7 +261,8 @@ abstract class BookWalkerJp :
     override fun getChapterUrl(chapter: SChapter): String = chapter.memo["viewerUrl"]?.string ?: throw Exception("章の一覧を更新してください。")
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val chapterUrl = client.get(getChapterUrl(chapter), desktopHeaders, ensureSuccess = false).use { it.request.url }
+        val chapterUrl =
+            client.get(getChapterUrl(chapter), desktopHeaders, ensureSuccess = false).use { it.request.url }
         val cid = chapterUrl.queryParameter("cid")
         val cty = chapterUrl.queryParameter("cty")?.toIntOrNull()
         val host = chapterUrl.host

@@ -9,13 +9,14 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
+import java.io.IOException
 
 class CoverBackgroundTest {
     @Test
-    fun `marked covers restore the legacy fragment before falling back`() {
-        val legacyUrl = "https://rimg.bookwalker.jp/8866361/cover.jpg#original-fragment"
-        val coverUrl = legacyUrl.getHiResCoverFromLegacyUrl()!!
+    fun `cover failures do not retry a legacy fallback fragment`() {
+        val coverUrl = "https://c.bookwalker.jp/coverImage_1636687.jpg#https://rimg.bookwalker.jp/8866361/cover.jpg"
         val requests = mutableListOf<Request>()
         val client = client(requests)
         val request = Request.Builder()
@@ -25,11 +26,10 @@ class CoverBackgroundTest {
 
         client.newCall(request).execute().use { response ->
             assertEquals(404, response.code)
-            assertEquals(legacyUrl, response.request.url.toString())
+            assertEquals(coverUrl, response.request.url.toString())
         }
-        assertEquals(listOf(coverUrl, legacyUrl), requests.map { it.url.toString() })
-        assertEquals(legacyUrl, requests.first().url.fragment)
-        assertEquals(listOf("https://bookwalker.jp/", "https://bookwalker.jp/"), requests.map { it.header("Referer") })
+        assertEquals(listOf(coverUrl), requests.map { it.url.toString() })
+        assertEquals("https://bookwalker.jp/", requests.single().header("Referer"))
     }
 
     @Test
@@ -50,7 +50,30 @@ class CoverBackgroundTest {
         assertEquals(listOf(coverUrl), requests.map { it.url.toString() })
     }
 
-    private fun client(requests: MutableList<Request>) = OkHttpClient.Builder()
+    @Test
+    fun `purchased library authentication errors still prompt a login`() {
+        val requests = mutableListOf<Request>()
+        val error = assertThrows(IOException::class.java) {
+            client(requests, 401).newCall(
+                Request.Builder().url("https://bookwalker.jp/prx/holdBooks-api/hold-book-list/").build(),
+            ).execute().close()
+        }
+        assertEquals("購入済みの書籍を表示するには、WebViewでログインしてください。", error.message)
+        assertEquals(1, requests.size)
+    }
+
+    @Test
+    fun `expired login redirects still prompt a login`() {
+        val requests = mutableListOf<Request>()
+        val error = assertThrows(IOException::class.java) {
+            client(requests).newCall(Request.Builder().url("https://bookwalker.jp/app/03/login").build()).execute()
+                .close()
+        }
+        assertEquals("ログインの有効期限が切れました。WebViewで再度ログインしてください。", error.message)
+        assertEquals(1, requests.size)
+    }
+
+    private fun client(requests: MutableList<Request>, code: Int = 404) = OkHttpClient.Builder()
         .addInterceptor(CoverBackgroundInterceptor())
         .addInterceptor(PublusInterceptor())
         .addInterceptor(BookWalkerInterceptor())
@@ -61,7 +84,7 @@ class CoverBackgroundTest {
             Response.Builder()
                 .request(request)
                 .protocol(Protocol.HTTP_1_1)
-                .code(404)
+                .code(code)
                 .message("Not Found")
                 .body("missing".toResponseBody())
                 .build()

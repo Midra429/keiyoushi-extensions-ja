@@ -6,7 +6,29 @@ Fixtures were obtained from these public BOOK☆WALKER endpoints on 2026-10-19:
 
 The JSON fixtures retain the identity and series fields. Unused fields were removed and description/copyright fields were set to null. No authenticated account data is included. Purchased/free button cases in `StandaloneBookTest` use constructed HTML; authenticated-device validation is still required.
 
-## Listing cover measurements (2026-10-19)
+## Detailed listings (version 1.6.15)
+
+Popular and latest now request `/category/2/?order=rank&detail=1&page=N` and
+`/category/2/?order=release&detail=1&page=N`. The parser supports `.o-card-wrap`,
+`.o-card-ttl a`, and `.o-card-ttl__text` without including the category badge in the title.
+Compact search and mobile-series layouts remain supported. Search, purchased-library,
+and chapter-list request parameters are otherwise unchanged.
+
+Cover URLs are taken directly from the site's HTML or API. Numeric-ID reconstruction
+and its image fallback have been removed; the blur-background processing remains.
+The detailed native cover `rimg/8866361/uafXIf56W6UsswyZ4GK03g__.jpg` measured 140×191px,
+and the hash-ID cover `rimg/2199dd559dc592b90d4c861f8f7fd7b/uafXIf56W6UsswyZ4GK03g__.jpg`
+measured 140×198px. These are larger thumbnails, not original-resolution artwork.
+
+`ListingTest` uses HTML constructed from the observed detailed/compact/mobile layouts
+and checks requests, image URLs, titles, identities, order, and pagination.
+Live desktop snapshots of popular/latest pages 1 and 2 each contained 60 matching
+entries, valid titles/images/links, and enabled next-page links retaining `detail=1`.
+Neither listing had overlapping book/series URLs between pages 1 and 2.
+`LibraryTest` checks that API-provided image URLs are not rewritten. Interceptor tests
+check that image failures do not retry legacy fallback URLs and login errors remain intact.
+
+## Historical listing cover measurements (2026-10-19)
 
 Version 1.6.11 temporarily used the site's small `data-original` thumbnails. Version 1.6.12 restores full-size `coverImage_` URLs for numeric `rimg` IDs and legacy `thumbnailImage_` URLs in both public and purchased listings. The original URL is retained as a fragment for the existing interceptor fallback; unrecognized IDs are left unchanged. Details still use `DetailsResponse.coverImageUrl`.
 
@@ -34,4 +56,5 @@ Public listing snapshots used the extension's desktop User-Agent and configured 
 
 During the native-thumbnail experiment, the compiled thumbnail helper was checked against every matched tile in these snapshots: it returned the original resolved image URL and did not mutate the document, titles, links, or order. All eight pages retained their next-page links; no IDs overlapped between pages 1 and 2 within each case. Listing requests, ID/title extraction, page sizes, sorting, and next-page detection are unchanged, so old page N still corresponds to new page N. The server ignored exploratory `qcnt=20` / `qcnt=30` on the popular listing (still 60 entries); no page-size parameter was added.
 
-`ListingTest` uses constructed desktop/mobile HTML to check high-resolution URL conversion, original-URL fallback fragments, unchanged full-size URLs, unrecognized IDs, and absent covers. `LibraryTest` checks the same mapping for purchased listings without calling the extension API's stubbed `SManga.create()`. Authenticated-library and Android-rendering validation is still required. Existing cached covers may remain until refreshed.
+The earlier conversion/fallback tests have been replaced by the direct-URL tests described above.
+Authenticated-library and Android-rendering validation is still required. Existing cached covers may remain until refreshed.

@@ -50,19 +50,19 @@ class LibraryTest {
     }
 
     @Test
-    fun `purchased listings use high resolution covers for recognized thumbnail ids`() {
+    fun `purchased listings keep numeric and legacy thumbnail URLs unchanged`() {
         val covers = listOf(
-            "https://rimg.bookwalker.jp/8866361/eUnObgIVNjRTJtVUNQrbaQ__.jpg" to "https://c.bookwalker.jp/coverImage_1636687.jpg",
-            "https://c.bookwalker.jp/thumbnailImage_1636688.jpg" to "https://c.bookwalker.jp/coverImage_1636687.jpg",
+            "https://rimg.bookwalker.jp/8866361/eUnObgIVNjRTJtVUNQrbaQ__.jpg",
+            "https://c.bookwalker.jp/thumbnailImage_1636688.jpg",
         )
-        for ((cover, highResolutionCover) in covers) {
+        for (cover in covers) {
             val entity = json.decodeFromString<Entity>(
                 """{"seriesId":12466,"seriesName":"キングダム","imageUrl":"$cover"}""",
             )
             assertEquals("12466", entity.mangaUrl)
             assertEquals("キングダム", entity.mangaTitle)
-            assertEquals("$highResolutionCover#$cover", entity.mangaThumbnailUrl)
-            assertEquals("$highResolutionCover#$cover".withCoverBackground(), entity.toSManga().thumbnail_url)
+            assertEquals(cover, entity.mangaThumbnailUrl)
+            assertEquals(cover.withCoverBackground(), entity.toSManga().thumbnail_url)
         }
     }
 

@@ -1,29 +1,38 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
+import eu.kanade.tachiyomi.source.model.MangasPage
+import eu.kanade.tachiyomi.source.model.SManga
 import keiyoushi.lib.coverbackground.withCoverBackground
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 const val DOMAIN = "bookwalker.jp"
-private const val RIMG_URL = "https://rimg.$DOMAIN"
-private const val C_URL = "https://c.$DOMAIN"
+
+internal fun categoryListingUrl(baseUrl: String, order: String, page: Int): HttpUrl = "$baseUrl/category/2/".toHttpUrl().newBuilder()
+    .addQueryParameter("order", order)
+    .addQueryParameter("detail", "1")
+    .addQueryParameter("page", page.toString())
+    .build()
+
+internal fun Document.toMangasPage(): MangasPage {
+    val mangas = select(".o-card-wrap, .m-tile, .o-tile--series").map {
+        val link = it.selectFirst(".o-card-ttl a, a.m-book-item__title, .o-tile-ttl a")!!
+        SManga.create().apply {
+            title = link.selectFirst(".o-card-ttl__text")?.text() ?: link.text()
+            thumbnail_url = it.listingCoverUrl()
+            val href = link.absUrl("href").toHttpUrl().pathSegments
+            url = if (href.first() == "series") href[1] else href[0]
+        }
+    }
+    return MangasPage(mangas, hasNextPage())
+}
+
+internal fun Document.hasNextPage(): Boolean = selectFirst(".o-pager-next a:not(.o-pager-box-btn_hidden), a[data-action-label=次のページへ]:not(.o-pager-box-btn_hidden)") != null
 
 internal fun Element.listingCoverUrl(): String? = selectFirst(".m-thumb__image img, .o-tile-book-img img")
+    ?.takeIf { it.attr("data-original").isNotEmpty() }
     ?.absUrl("data-original")
-    .getHiResCoverFromLegacyUrl()
+    ?.takeIf(String::isNotEmpty)
     .withCoverBackground()
-
-internal fun String?.getHiResCoverFromLegacyUrl(): String? {
-    if (this.isNullOrEmpty()) return null
-    val segments = this.toHttpUrlOrNull()?.pathSegments ?: return this
-    val fileName = segments.last()
-    val extension = fileName.substringAfterLast('.')
-    val coverId = when {
-        this.startsWith(RIMG_URL) -> segments.first().reversed().toLongOrNull() ?: return this
-        fileName.startsWith("thumbnailImage_") -> fileName.substringAfter("thumbnailImage_").substringBefore('.')
-            .toLongOrNull() ?: return this
-
-        else -> return this
-    }
-    return "$C_URL/coverImage_${coverId - 1}.$extension#$this"
-}

@@ -1,15 +1,12 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
-import eu.kanade.tachiyomi.network.GET
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
 
 internal class BookWalkerInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
-        val response = chain.proceed(request)
-        val fallbackUrl = request.url.fragment
+        val response = chain.proceed(chain.request())
         val url = response.request.url
         if (response.code == 401 && "holdBooks-api" in url.pathSegments) {
             response.close()
@@ -21,10 +18,6 @@ internal class BookWalkerInterceptor : Interceptor {
             throw IOException("ログインの有効期限が切れました。WebViewで再度ログインしてください。")
         }
 
-        if (response.isSuccessful || fallbackUrl.isNullOrEmpty() || !request.url.encodedPath.contains("/coverImage_")) {
-            return response
-        }
-        response.close()
-        return chain.proceed(GET(fallbackUrl, request.headers))
+        return response
     }
 }
