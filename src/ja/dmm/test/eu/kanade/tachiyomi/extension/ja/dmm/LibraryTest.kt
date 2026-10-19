@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.extension.ja.dmm
 
+import keiyoushi.lib.coverbackground.withCoverBackground
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -71,6 +72,7 @@ class LibraryTest {
         assertEquals("123", manga.url)
         assertEquals("購入済み作品【特装版】", manga.title)
         assertEquals("https://example.com/cover-large.webp", manga.thumbnailUrl)
+        assertEquals("https://example.com/cover-large.webp".withCoverBackground(), manga.toSManga().thumbnail_url)
         assertFalse(page.hasNextPage)
     }
 
@@ -132,6 +134,7 @@ class LibraryTest {
         assertEquals("123", book.url)
         assertEquals("購入済み作品", book.title)
         assertNull(book.thumbnailUrl)
+        assertNull(book.toSManga().thumbnail_url)
     }
 
     @Test(expected = SerializationException::class)

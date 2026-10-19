@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.extension.ja.dmm
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.SManga
+import keiyoushi.lib.coverbackground.withCoverBackground
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -43,7 +44,7 @@ internal class LibraryBook(
     fun toSManga() = SManga.create().apply {
         url = this@LibraryBook.url
         title = this@LibraryBook.title
-        thumbnail_url = thumbnailUrl
+        thumbnail_url = thumbnailUrl.withCoverBackground()
     }
 }
 

@@ -7,6 +7,8 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.lib.coverbackground.CoverBackgroundInterceptor
+import keiyoushi.lib.coverbackground.withCoverBackground
 import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
@@ -24,7 +26,8 @@ import java.time.format.DateTimeFormatter
 abstract class OnePunchMan : KeiSource() {
     override val supportsLatest = false
 
-    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = rateLimit(2)
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = addInterceptor(CoverBackgroundInterceptor())
+        .rateLimit(2)
 
     override suspend fun getPopularManga(page: Int): MangasPage = MangasPage(listOf(createManga()), false)
 
@@ -53,7 +56,7 @@ abstract class OnePunchMan : KeiSource() {
         title = "ワンパンマン"
         author = "ＯＮＥ"
         artist = author
-        thumbnail_url = "$baseUrl/top.jpg"
+        thumbnail_url = "$baseUrl/top.jpg".withCoverBackground()
         status = SManga.ONGOING
     }
 

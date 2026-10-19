@@ -61,12 +61,12 @@ class SeriesListItem(
     val isVolumeOnly: Boolean
         get() = firstEpisode == null
 
-    fun toSManga(): SManga? {
+    fun toSManga(coverUrl: (String?) -> String? = { it }): SManga? {
         val permalink = (firstEpisode ?: firstVolume)?.permalink ?: return null
         return SManga.create().apply {
             url = databaseId
             title = this@SeriesListItem.title
-            thumbnail_url = thumbnailUri ?: latestVolume?.thumbnailUri
+            thumbnail_url = coverUrl(thumbnailUri ?: latestVolume?.thumbnailUri)
             memo = buildJsonObject {
                 put("path", permalink.toHttpUrl().encodedPath)
             }
@@ -107,12 +107,12 @@ class SeriesDetails(
     val episodes: TotalCount,
     val volumes: TotalCount,
 ) {
-    fun toSManga() = SManga.create().apply {
+    fun toSManga(coverUrl: (String?) -> String? = { it }) = SManga.create().apply {
         url = databaseId
         title = this@SeriesDetails.title
         author = this@SeriesDetails.author?.name
         description = this@SeriesDetails.description
-        thumbnail_url = thumbnailUri ?: latestVolume?.thumbnailUri
+        thumbnail_url = coverUrl(thumbnailUri ?: latestVolume?.thumbnailUri)
         memo = buildJsonObject {
             put("path", (firstEpisode ?: firstVolume)!!.permalink.toHttpUrl().encodedPath)
         }

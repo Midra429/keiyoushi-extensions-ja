@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
+import keiyoushi.lib.coverbackground.withCoverBackground
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -61,6 +62,7 @@ class LibraryTest {
             assertEquals("12466", entity.mangaUrl)
             assertEquals("キングダム", entity.mangaTitle)
             assertEquals("$highResolutionCover#$cover", entity.mangaThumbnailUrl)
+            assertEquals("$highResolutionCover#$cover".withCoverBackground(), entity.toSManga().thumbnail_url)
         }
     }
 
@@ -71,6 +73,7 @@ class LibraryTest {
             """{"seriesId":12466,"seriesName":"キングダム","imageUrl":"$cover"}""",
         )
         assertEquals(cover, entity.mangaThumbnailUrl)
+        assertEquals(cover.withCoverBackground(), entity.toSManga().thumbnail_url)
     }
 
     @Test
@@ -82,6 +85,7 @@ class LibraryTest {
             assertEquals("de48f2f317-3551-4000-8000-123456789abc", entity.mangaUrl)
             assertEquals("単独の書籍", entity.mangaTitle)
             assertNull(entity.mangaThumbnailUrl)
+            assertNull(entity.toSManga().thumbnail_url)
         }
     }
 

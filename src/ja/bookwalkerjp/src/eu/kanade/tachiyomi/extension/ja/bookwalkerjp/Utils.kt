@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
+import keiyoushi.lib.coverbackground.withCoverBackground
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.jsoup.nodes.Element
 
@@ -10,6 +11,7 @@ private const val C_URL = "https://c.$DOMAIN"
 internal fun Element.listingCoverUrl(): String? = selectFirst(".m-thumb__image img, .o-tile-book-img img")
     ?.absUrl("data-original")
     .getHiResCoverFromLegacyUrl()
+    .withCoverBackground()
 
 internal fun String?.getHiResCoverFromLegacyUrl(): String? {
     if (this.isNullOrEmpty()) return null

@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.extension.ja.dmm
 
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import keiyoushi.lib.coverbackground.withCoverBackground
 import keiyoushi.utils.tryParse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -26,7 +27,7 @@ class DetailsResponse(
             volumes.category?.name?.let { add(it) }
         }.takeIf { it.isNotEmpty() }?.joinToString()
         status = if (series.status?.isCompletion == true) SManga.COMPLETED else SManga.ONGOING
-        thumbnail_url = volumes.imageUrls?.pl
+        thumbnail_url = volumes.imageUrls?.pl.withCoverBackground()
     }
 }
 

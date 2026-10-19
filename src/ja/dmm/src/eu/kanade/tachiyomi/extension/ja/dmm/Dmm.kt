@@ -11,6 +11,8 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.lib.coverbackground.CoverBackgroundInterceptor
+import keiyoushi.lib.coverbackground.withCoverBackground
 import keiyoushi.lib.publus.PublusContent
 import keiyoushi.lib.publus.PublusInterceptor
 import keiyoushi.lib.publus.fetchPages
@@ -48,6 +50,7 @@ abstract class Dmm :
             .build()
 
     override fun OkHttpClient.Builder.configureClient() = apply {
+        addInterceptor(CoverBackgroundInterceptor())
         addInterceptor(PublusInterceptor())
         addCookie(listOf("book_safe_mode_level" to "off", "age_check_done" to "1"))
         addInterceptor { chain ->
@@ -107,6 +110,7 @@ abstract class Dmm :
                 title = it.selectFirst(".m-boxListBookProduct2Tmb__ttl, .m-boxSearchListTmb__ttl")!!.text()
                     .replace(TITLE_REGEX, "")
                 thumbnail_url = it.selectFirst("img.m-bookImage__img")?.absUrl("src")?.replace(THUMBNAIL_REGEX, "l")
+                    .withCoverBackground()
             }
         }
 

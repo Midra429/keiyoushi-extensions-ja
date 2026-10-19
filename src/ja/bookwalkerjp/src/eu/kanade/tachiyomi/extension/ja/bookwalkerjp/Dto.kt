@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
 import eu.kanade.tachiyomi.source.model.SManga
+import keiyoushi.lib.coverbackground.withCoverBackground
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -36,7 +37,7 @@ class DetailsResponse(
             labelName?.let { append("\n\nレーベル： $it") }
             copyRightString?.let { append("\n\n$it") }
         }
-        thumbnail_url = coverImageUrl
+        thumbnail_url = coverImageUrl.withCoverBackground()
     }
 }
 
@@ -84,6 +85,6 @@ class Entity(
     fun toSManga() = SManga.create().apply {
         url = mangaUrl
         title = mangaTitle
-        thumbnail_url = mangaThumbnailUrl
+        thumbnail_url = mangaThumbnailUrl.withCoverBackground()
     }
 }

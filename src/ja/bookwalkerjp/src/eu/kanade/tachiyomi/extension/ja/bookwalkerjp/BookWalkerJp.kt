@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
-import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
@@ -12,6 +11,7 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.lib.coverbackground.CoverBackgroundInterceptor
 import keiyoushi.lib.publus.PublusAuthHandler
 import keiyoushi.lib.publus.PublusContent
 import keiyoushi.lib.publus.PublusInterceptor
@@ -38,7 +38,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
 
 @Source
@@ -55,29 +54,10 @@ abstract class BookWalkerJp :
         .build()
 
     override fun OkHttpClient.Builder.configureClient() = apply {
+        addInterceptor(CoverBackgroundInterceptor())
         addCookie(listOf("holdBook-series" to "1", "safeSearch" to "111", "mySetting/showCoverR15" to "1"))
         addInterceptor(PublusInterceptor())
-        addInterceptor {
-            val request = it.request()
-            val response = it.proceed(request)
-            val fallbackUrl = request.url.fragment
-            val url = response.request.url
-            if (response.code == 401 && "holdBooks-api" in url.pathSegments) {
-                response.close()
-                throw IOException("購入済みの書籍を表示するには、WebViewでログインしてください。")
-            }
-
-            if (url.encodedPath == "/app/03/login") {
-                response.close()
-                throw IOException("ログインの有効期限が切れました。WebViewで再度ログインしてください。")
-            }
-
-            if (response.isSuccessful || fallbackUrl.isNullOrEmpty() || !request.url.encodedPath.contains("/coverImage_")) {
-                return@addInterceptor response
-            }
-            response.close()
-            it.proceed(GET(fallbackUrl, request.headers))
-        }
+        addInterceptor(BookWalkerInterceptor())
     }
 
     override suspend fun getPopularManga(page: Int): MangasPage {

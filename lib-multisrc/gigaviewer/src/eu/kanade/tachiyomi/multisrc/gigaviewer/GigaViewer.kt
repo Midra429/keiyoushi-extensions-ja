@@ -38,7 +38,11 @@ abstract class GigaViewer :
     protected open val apiUrl get() = "$baseUrl/graphql"
     protected open val preferences by getPreferencesLazy()
 
-    override fun OkHttpClient.Builder.configureClient() = apply {
+    protected open fun coverUrl(url: String?): String? = url
+
+    override fun OkHttpClient.Builder.configureClient() = configureGigaViewerClient()
+
+    protected fun OkHttpClient.Builder.configureGigaViewerClient() = apply {
         addInterceptor(ImageInterceptor())
         addInterceptor(GraphQLErrorInterceptor())
     }
@@ -67,14 +71,14 @@ abstract class GigaViewer :
     override suspend fun getPopularManga(page: Int): MangasPage {
         val mangas = fetchSeriesList(seriesListIds)
             .sortedByDescending { it.likeCount }
-            .mapNotNull { it.toSManga() }
+            .mapNotNull { it.toSManga(::coverUrl) }
         return MangasPage(mangas, false)
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         val mangas = fetchSeriesList(seriesListIds)
             .sortedByDescending { it.latestPublishedAt }
-            .mapNotNull { it.toSManga() }
+            .mapNotNull { it.toSManga(::coverUrl) }
         return MangasPage(mangas, false)
     }
 
@@ -84,7 +88,7 @@ abstract class GigaViewer :
                 .parseGraphQLAs<SearchResponse>().searchSeries.edges
                 .map { it.node }
                 .sortedBy { it.isVolumeOnly }
-                .mapNotNull { it.toSManga() }
+                .mapNotNull { it.toSManga(::coverUrl) }
             return MangasPage(mangas, false)
         }
 
@@ -92,7 +96,7 @@ abstract class GigaViewer :
         return MangasPage(fetchCollection(ids), false)
     }
 
-    protected open suspend fun fetchCollection(ids: List<String>): List<SManga> = fetchSeriesList(ids).mapNotNull { it.toSManga() }
+    protected open suspend fun fetchCollection(ids: List<String>): List<SManga> = fetchSeriesList(ids).mapNotNull { it.toSManga(::coverUrl) }
 
     protected open suspend fun fetchSeriesList(ids: List<String>): List<SeriesListItem> {
         val variables = ids.withIndex().associate { (i, id) ->
@@ -126,8 +130,14 @@ abstract class GigaViewer :
     }
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
-        if (url.host != baseUrl.toHttpUrl().host || url.pathSegments.first() !in listOf("episode", "volume")) return null
-        return fetchSeries(fetchSeriesId(url.toString())).toSManga()
+        if (url.host != baseUrl.toHttpUrl().host || url.pathSegments.first() !in listOf(
+                "episode",
+                "volume",
+            )
+        ) {
+            return null
+        }
+        return fetchSeries(fetchSeriesId(url.toString())).toSManga(::coverUrl)
     }
 
     override fun getMangaUrl(manga: SManga): String = baseUrl + manga.memo["path"]!!.string
@@ -138,9 +148,10 @@ abstract class GigaViewer :
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate = coroutineScope {
-        val seriesId = if (manga.url.startsWith("/")) fetchSeriesId(baseUrl + manga.url) else manga.url // for old url compatibility
+        val seriesId =
+            if (manga.url.startsWith("/")) fetchSeriesId(baseUrl + manga.url) else manga.url // for old url compatibility
         val series = fetchSeries(seriesId)
-        val details = series.toSManga()
+        val details = series.toSManga(::coverUrl)
 
         if (!fetchChapters) return@coroutineScope SMangaUpdate(details, chapters)
 
@@ -160,7 +171,8 @@ abstract class GigaViewer :
 
     private suspend fun fetchSeriesId(url: String): String = client.get(url).asJsoup().selectFirst("script.js-valve")!!.attr("data-giga_series")
 
-    private suspend fun fetchSeries(id: String): SeriesDetails = client.post(apiUrl, body = graphQLBody(SERIES_QUERY, variables = SeriesVariables(id))).parseGraphQLAs<SeriesResponse>().series
+    private suspend fun fetchSeries(id: String): SeriesDetails = client.post(apiUrl, body = graphQLBody(SERIES_QUERY, variables = SeriesVariables(id)))
+        .parseGraphQLAs<SeriesResponse>().series
 
     private suspend fun fetchReadableProducts(seriesId: String, type: String, count: Int): List<ReadableProduct> {
         val products = mutableListOf<ReadableProduct>()

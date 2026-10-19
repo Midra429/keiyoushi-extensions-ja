@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "ワンパンマン（ＯＮＥ）"
-    versionCode = 1
+    versionCode = 2
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 
@@ -20,4 +20,8 @@ keiyoushi {
         path("/index.html")
         path("/fc2-imageviewer/")
     }
+}
+
+dependencies {
+    implementation(project(":lib:coverbackground"))
 }

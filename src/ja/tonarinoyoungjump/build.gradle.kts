@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "となりのヤングジャンプ"
-    versionCode = 2
+    versionCode = 3
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
     theme = "gigaviewer"
@@ -16,4 +16,8 @@ keiyoushi {
         lang = "ja"
         baseUrl = "https://tonarinoyj.jp"
     }
+}
+
+dependencies {
+    implementation(project(":lib:coverbackground"))
 }

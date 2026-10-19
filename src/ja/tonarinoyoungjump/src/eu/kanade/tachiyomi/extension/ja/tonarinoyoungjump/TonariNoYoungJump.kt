@@ -2,10 +2,20 @@ package eu.kanade.tachiyomi.extension.ja.tonarinoyoungjump
 
 import eu.kanade.tachiyomi.multisrc.gigaviewer.GigaViewer
 import keiyoushi.annotation.Source
+import keiyoushi.lib.coverbackground.CoverBackgroundInterceptor
+import keiyoushi.lib.coverbackground.withCoverBackground
+import okhttp3.OkHttpClient
 
 @Source
 abstract class TonariNoYoungJump : GigaViewer() {
     override val episodePageSize = 100
+
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder {
+        addInterceptor(CoverBackgroundInterceptor())
+        return configureGigaViewerClient()
+    }
+
+    override fun coverUrl(url: String?): String? = url.withCoverBackground()
 
     override val seriesListIds = listOf("3269632237330951493", "3269632237330951504")
 

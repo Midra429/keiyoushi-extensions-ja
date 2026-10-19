@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "ブックウォーカー"
-    versionCode = 12
+    versionCode = 13
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
@@ -30,6 +30,7 @@ tasks.matching { it.name.startsWith("ksp") && it.name.contains("UnitTest") }.con
 }
 
 dependencies {
+    implementation(project(":lib:coverbackground"))
     implementation(project(":lib:publus"))
     testImplementation(libs.bundles.common)
     testImplementation(libs.tachiyomi.lib.v16)

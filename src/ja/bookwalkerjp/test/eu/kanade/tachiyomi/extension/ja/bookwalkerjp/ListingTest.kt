@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
+import keiyoushi.lib.coverbackground.withCoverBackground
 import org.jsoup.Jsoup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -30,8 +31,8 @@ class ListingTest {
 
         assertEquals(
             listOf(
-                "https://c.bookwalker.jp/coverImage_1636687.jpg#$cover",
-                "https://c.bookwalker.jp/coverImage_122.jpg#$baseUrl/thumbnailImage_123.jpg",
+                "https://c.bookwalker.jp/coverImage_1636687.jpg#$cover".withCoverBackground(),
+                "https://c.bookwalker.jp/coverImage_122.jpg#$baseUrl/thumbnailImage_123.jpg".withCoverBackground(),
             ),
             tiles.map { it.listingCoverUrl() },
         )
@@ -48,7 +49,10 @@ class ListingTest {
             baseUrl,
         ).selectFirst(".o-tile--series")!!
 
-        assertEquals("https://c.bookwalker.jp/coverImage_1636687.jpg#$cover", tile.listingCoverUrl())
+        assertEquals(
+            "https://c.bookwalker.jp/coverImage_1636687.jpg#$cover".withCoverBackground(),
+            tile.listingCoverUrl()
+        )
     }
 
     @Test

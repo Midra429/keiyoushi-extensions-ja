@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.extension.ja.kadocomi
 
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import keiyoushi.lib.coverbackground.withCoverBackground
 import keiyoushi.utils.tryParse
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
@@ -34,7 +35,7 @@ class Result(
     fun toSManga() = SManga.create().apply {
         url = "/detail/$code"
         title = this@Result.title
-        thumbnail_url = bookCover ?: originalThumbnail
+        thumbnail_url = (bookCover ?: originalThumbnail).withCoverBackground()
     }
 }
 
@@ -60,7 +61,7 @@ class Work(
 ) {
     fun toSManga() = SManga.create().apply {
         title = this@Work.title
-        thumbnail_url = bookCover ?: originalThumbnail
+        thumbnail_url = (bookCover ?: originalThumbnail).withCoverBackground()
         description = buildString {
             summary?.let { append(it) }
             nextUpdateDateText?.let { append("\n\n次回更新： $nextUpdateDateText") }

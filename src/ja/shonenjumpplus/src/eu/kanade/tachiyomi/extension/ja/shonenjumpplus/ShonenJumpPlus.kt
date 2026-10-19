@@ -4,14 +4,24 @@ import eu.kanade.tachiyomi.multisrc.gigaviewer.GigaViewer
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.SManga
 import keiyoushi.annotation.Source
+import keiyoushi.lib.coverbackground.CoverBackgroundInterceptor
+import keiyoushi.lib.coverbackground.withCoverBackground
 import keiyoushi.network.get
 import keiyoushi.utils.asJsoup
+import okhttp3.OkHttpClient
 import java.time.LocalDate
 import java.time.ZoneId
 
 @Source
 abstract class ShonenJumpPlus : GigaViewer() {
     override val episodePageSize = 100
+
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder {
+        addInterceptor(CoverBackgroundInterceptor())
+        return configureGigaViewerClient()
+    }
+
+    override fun coverUrl(url: String?): String? = url.withCoverBackground()
 
     override suspend fun getPopularManga(page: Int): MangasPage {
         val mangas = fetchSeriesPage("", "ul.series-list li a")
@@ -29,8 +39,9 @@ abstract class ShonenJumpPlus : GigaViewer() {
     private suspend fun fetchSeriesPage(path: String, selector: String): List<SManga> = client.get("$baseUrl/series$path").asJsoup().select(selector).map {
         SManga.create().apply {
             title = it.selectFirst("h2.series-list-title")!!.text()
-            thumbnail_url = it.selectFirst("div.series-list-thumb img")?.absUrl("data-src")
-            setSeriesUrl(it.absUrl("href"), thumbnail_url)
+            val thumbnailUrl = it.selectFirst("div.series-list-thumb img")?.absUrl("data-src")
+            setSeriesUrl(it.absUrl("href"), thumbnailUrl)
+            thumbnail_url = coverUrl(thumbnailUrl)
         }
     }.distinctBy { it.url }
 

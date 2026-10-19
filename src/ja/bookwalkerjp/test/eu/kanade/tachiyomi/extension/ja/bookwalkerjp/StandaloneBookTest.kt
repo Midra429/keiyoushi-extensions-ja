@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
+import keiyoushi.lib.coverbackground.withCoverBackground
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.junit.Assert.assertEquals
@@ -15,6 +16,28 @@ class StandaloneBookTest {
         javaClass.getResourceAsStream("/$name")!!.bufferedReader().use {
             json.decodeFromString<List<DetailsResponse>>(transform(it.readText())).single()
         }
+
+    @Test
+    fun `series and standalone details mark their original cover URLs`() {
+        val covers = listOf(
+            "standalone-details.json" to "https://member.bookwalker.jp/images/coverImage_9cff1919fd6142e49839a4700a421433.jpg",
+            "series-details.json" to "https://member.bookwalker.jp/images/coverImage_73ca6b47b2fe47118beb88a871e9c7b4.jpg",
+        )
+        for ((name, cover) in covers) {
+            assertEquals(cover.withCoverBackground(), fixture(name).toSManga().thumbnail_url)
+        }
+    }
+
+    @Test
+    fun `details without a cover do not create an image URL`() {
+        val details = fixture("standalone-details.json") {
+            it.replace(
+                "\"coverImageUrl\": \"https://member.bookwalker.jp/images/coverImage_9cff1919fd6142e49839a4700a421433.jpg\"",
+                "\"coverImageUrl\": null"
+            )
+        }
+        assertNull(details.toSManga().thumbnail_url)
+    }
 
     @Test
     fun `a standalone book retains its uuid and product title when series fields are null`() {
