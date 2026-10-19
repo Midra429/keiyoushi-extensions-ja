@@ -15,6 +15,7 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.ForwardingSource
 import okio.buffer
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -45,7 +46,7 @@ class InterceptorTest {
             fetchedUrl = request.url.toString()
             response(request, body)
                 .newBuilder()
-                .header("Content-Type", "image/png")
+                .header("Content-Type", "image/jpeg")
                 .header("Content-Length", "1")
                 .header("ETag", "original")
                 .header("Content-MD5", "original")
@@ -55,7 +56,7 @@ class InterceptorTest {
         client.newCall(Request.Builder().url(url.withCoverBackground()!!).build()).execute().use { result ->
             assertEquals(url, fetchedUrl)
             assertTrue(body.closed)
-            assertEquals("image/jpeg", result.header("Content-Type"))
+            assertEquals("image/png", result.header("Content-Type"))
             assertEquals(result.body.contentLength().toString(), result.header("Content-Length"))
             assertNull(result.header("ETag"))
             assertNull(result.header("Content-MD5"))
@@ -69,6 +70,32 @@ class InterceptorTest {
                 cover.recycle()
             }
         }
+    }
+
+    @Test
+    fun `small cover foregrounds survive encoding without additional compression loss`() {
+        val width = 140
+        val height = 190
+        val pixels = IntArray(width * height) { Color.rgb(it * 17 % 256, it * 31 % 256, it * 47 % 256) }
+        val original = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+        val input = Buffer()
+        original.compress(Bitmap.CompressFormat.PNG, 100, input.outputStream())
+        original.recycle()
+        val client =
+            client { request -> response(request, input.asResponseBody("image/png".toMediaType(), input.size)) }
+        client.newCall(Request.Builder().url("https://example.com/native-cover".withCoverBackground()!!).build())
+            .execute().use {
+                val cover = BitmapFactory.decodeStream(it.body.byteStream())!!
+                try {
+                    val actual = IntArray(pixels.size)
+                    cover.getPixels(actual, 0, width, 0, 10, width, height)
+                    assertArrayEquals("Encoding must preserve the decoded foreground pixels", pixels, actual)
+                    assertEquals("image/png", it.header("Content-Type"))
+                    assertEquals("image/png", it.body.contentType().toString())
+                } finally {
+                    cover.recycle()
+                }
+            }
     }
 
     @Test

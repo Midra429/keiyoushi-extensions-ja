@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -11,6 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.roundToInt
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], manifest = Config.NONE)
@@ -37,6 +39,25 @@ class BackgroundTest {
         } finally {
             original.recycle()
             output.recycle()
+        }
+    }
+
+    @Test
+    fun `small covers with odd padding retain every foreground pixel`() {
+        for ((width, height) in listOf(140 to 191, 141 to 190)) {
+            val pixels = IntArray(width * height) { if (it / width % 2 == 0) Color.BLACK else Color.WHITE }
+            val original = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+            val output = renderCoverBackground(original)
+            try {
+                val actual = IntArray(pixels.size)
+                val left = ((output.width - width) / 2f).roundToInt()
+                val top = ((output.height - height) / 2f).roundToInt()
+                output.getPixels(actual, 0, width, left, top, width, height)
+                assertArrayEquals("Foreground must not be softened by fractional-pixel positioning", pixels, actual)
+            } finally {
+                original.recycle()
+                output.recycle()
+            }
         }
     }
 

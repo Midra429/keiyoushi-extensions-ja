@@ -52,6 +52,8 @@ internal fun renderCoverBackground(original: Bitmap): Bitmap {
         }
 
         val foreground = centeredRect(geometry.imageWidth, geometry.imageHeight, output.width, output.height)
+        // Half-pixel padding would bilinearly soften even an unscaled foreground.
+        foreground.offsetTo(foreground.left.roundToInt().toFloat(), foreground.top.roundToInt().toFloat())
         canvas.drawBitmap(original, null, foreground, paint)
         return output
     } catch (e: Exception) {

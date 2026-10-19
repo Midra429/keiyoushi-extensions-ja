@@ -10,11 +10,13 @@ import okhttp3.ResponseBody.Companion.asResponseBody
 import okio.Buffer
 import java.io.IOException
 
-private const val COVER_MARKER = "keiyoushi-cover-v2:"
+private const val COVER_MARKER = "keiyoushi-cover-v3:"
+private const val PREVIOUS_COVER_MARKER = "keiyoushi-cover-v2:"
 private const val LEGACY_COVER_MARKER = "keiyoushi-cover-v1:"
 
 private fun String.originalCoverFragment(): String? = when {
     startsWith(COVER_MARKER) -> removePrefix(COVER_MARKER)
+    startsWith(PREVIOUS_COVER_MARKER) -> removePrefix(PREVIOUS_COVER_MARKER)
     startsWith(LEGACY_COVER_MARKER) -> removePrefix(LEGACY_COVER_MARKER)
     else -> null
 }
@@ -58,7 +60,7 @@ class CoverBackgroundInterceptor : Interceptor {
             try {
                 val cover = renderCoverBackground(original)
                 try {
-                    if (!cover.compress(Bitmap.CompressFormat.JPEG, 94, output.outputStream())) {
+                    if (!cover.compress(Bitmap.CompressFormat.PNG, 100, output.outputStream())) {
                         throw IOException("Could not encode cover image")
                     }
                 } finally {
@@ -69,12 +71,12 @@ class CoverBackgroundInterceptor : Interceptor {
             }
         }
         return response.newBuilder()
-            .header("Content-Type", "image/jpeg")
+            .header("Content-Type", "image/png")
             .header("Content-Length", output.size.toString())
             .removeHeader("Content-Encoding")
             .removeHeader("Content-MD5")
             .removeHeader("ETag")
-            .body(output.asResponseBody("image/jpeg".toMediaType(), output.size))
+            .body(output.asResponseBody("image/png".toMediaType(), output.size))
             .build()
     }
 }

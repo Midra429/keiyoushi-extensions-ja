@@ -29,11 +29,13 @@ class UrlTest {
     @Test
     fun `previously marked covers get a new cache key without nesting markers`() {
         for (fragment in listOf("", "https://example.com/fallback.jpg?x=1&y=2#inner")) {
-            val original = "https://example.com/cover.jpg#keiyoushi-cover-v1:$fragment"
-            val marked = original.withCoverBackground()
-            assertEquals("https://example.com/cover.jpg#keiyoushi-cover-v2:$fragment", marked)
-            assertEquals(marked, marked.withCoverBackground())
-            assertNotEquals(original, marked)
+            for (version in listOf(1, 2)) {
+                val original = "https://example.com/cover.jpg#keiyoushi-cover-v$version:$fragment"
+                val marked = original.withCoverBackground()
+                assertEquals("https://example.com/cover.jpg#keiyoushi-cover-v3:$fragment", marked)
+                assertEquals(marked, marked.withCoverBackground())
+                assertNotEquals(original, marked)
+            }
         }
     }
 
@@ -60,7 +62,11 @@ class UrlTest {
                 }
                 .build()
             val marked = url.withCoverBackground()!!
-            for (cover in listOf(marked, marked.replace("#keiyoushi-cover-v2:", "#keiyoushi-cover-v1:"))) {
+            for (cover in listOf(
+                marked,
+                marked.replace("#keiyoushi-cover-v3:", "#keiyoushi-cover-v2:"),
+                marked.replace("#keiyoushi-cover-v3:", "#keiyoushi-cover-v1:"),
+            )) {
                 client.newCall(Request.Builder().url(cover).header("Referer", "keep me").build())
                     .execute().close()
             }
