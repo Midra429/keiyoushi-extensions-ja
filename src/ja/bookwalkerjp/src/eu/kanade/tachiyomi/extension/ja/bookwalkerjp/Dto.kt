@@ -12,13 +12,21 @@ class DetailsResponse(
     private val productExplanationDetails: String?,
     private val coverImageUrl: String?,
     private val labelName: String?,
-    val seriesId: Int,
-    private val seriesName: String,
+    val seriesId: Int?,
+    private val seriesName: String?,
     private val seriesNameKana: String?,
+    val uuid: String,
+    private val productName: String,
 ) {
+    val mangaUrl: String
+        get() = seriesId?.toString() ?: "de$uuid"
+
+    val mangaTitle: String
+        get() = seriesName ?: productName
+
     fun toSManga() = SManga.create().apply {
-        url = seriesId.toString()
-        title = seriesName
+        url = mangaUrl
+        title = mangaTitle
         author = authors?.joinToString { it.authorName }
         description = buildString {
             productExplanationShort?.let { append("$it\n\n") }
