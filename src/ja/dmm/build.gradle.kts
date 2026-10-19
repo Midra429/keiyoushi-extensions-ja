@@ -5,8 +5,8 @@ plugins {
 }
 
 keiyoushi {
-    name = "DMMブックス / FANZAブックス"
-    versionCode = 4
+    name = "DMM"
+    versionCode = 5
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 

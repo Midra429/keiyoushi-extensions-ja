@@ -17,22 +17,20 @@ import keiyoushi.lib.publus.fetchPages
 import keiyoushi.network.addCookie
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
-import keiyoushi.utils.WebViewTimeoutException
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
-import keiyoushi.utils.runWebView
 import keiyoushi.utils.string
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.JsonElement
+import okhttp3.CacheControl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.IOException
-import kotlin.time.Duration.Companion.seconds
 
 @Source
 abstract class Dmm :
@@ -41,9 +39,13 @@ abstract class Dmm :
     private val shopName get() = if (baseUrl.toHttpUrl().host == "book.dmm.co.jp") "adult" else "general"
     private val apiUrl get() = "$baseUrl/ajax/bff"
     private val preferences by getPreferencesLazy()
-    private val desktopHeaders get() = headersBuilder()
-        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36")
-        .build()
+    private val desktopHeaders
+        get() = headersBuilder()
+            .set(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+            )
+            .build()
 
     override fun OkHttpClient.Builder.configureClient() = apply {
         addInterceptor(PublusInterceptor())
@@ -51,8 +53,10 @@ abstract class Dmm :
         addInterceptor { chain ->
             val response = chain.proceed(chain.request())
             val path = response.request.url.encodedPath
-            val libraryRequest = chain.request().url.encodedPath in listOf("/shelf/", "/library/")
-            if (libraryRequest && (response.request.url.host.startsWith("accounts.") || path.startsWith("/service/login/"))) {
+            val libraryRequest = chain.request().url.encodedPath in listOf("/shelf/", "/library/", "/ajax/bff/library/")
+            val loginRequired = response.code == 401 || response.request.url.host.startsWith("accounts.") ||
+                path.startsWith("/service/login/")
+            if (libraryRequest && loginRequired) {
                 response.close()
                 throw IOException("購入済みの書籍を表示するには、WebViewでログインしてください。")
             }
@@ -102,34 +106,10 @@ abstract class Dmm :
     )
 
     private suspend fun getLibraryManga(page: Int): MangasPage {
-        val url = "$baseUrl/library/".toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .build()
-        val html = try {
-            runWebView<String>(timeout = 30.seconds) {
-                userAgent = desktopHeaders["User-Agent"]!!
-                blockImages = true
-                onPageFinished { pageUrl ->
-                    val current = pageUrl.toHttpUrl()
-                    if (current.host.startsWith("accounts.") || current.encodedPath.startsWith("/service/login/")) {
-                        reject(IOException("購入済みの書籍を表示するには、WebViewでログインしてください。"))
-                    }
-                }
-                onReceivedError { request, error ->
-                    if (request.isForMainFrame) reject(IOException(error.description.toString()))
-                }
-                // The bookshelf is populated by JavaScript after the document loads.
-                poll {
-                    evaluateJs(LIBRARY_CONTENT_SCRIPT) { result ->
-                        result.parseAs<String?>()?.let { resolve(it) }
-                    }
-                }
-                loadUrl(url.toString())
-            }
-        } catch (e: WebViewTimeoutException) {
-            throw IOException("購入済み一覧の読み込みが完了しませんでした。WebViewで本棚が表示できるか確認してください。", e)
-        }
-        return html.asJsoup(url.toString()).parseLibraryPage().toMangasPage()
+        val url = libraryRequestUrl(baseUrl, shopName, page)
+        return client.get(url, cacheControl = CacheControl.FORCE_NETWORK)
+            .parseAs<LibraryResponse>()
+            .toMangasPage(shopName)
     }
 
     private fun Response.toMangasPage(): MangasPage {
@@ -137,7 +117,8 @@ abstract class Dmm :
         val mangas = document.select(".m-boxListBookProduct2__item, .m-boxSearchBookProduct__item").map {
             SManga.create().apply {
                 url = it.selectFirst("a[href*=/product/]")!!.absUrl("href").toHttpUrl().pathSegments[1]
-                title = it.selectFirst(".m-boxListBookProduct2Tmb__ttl, .m-boxSearchListTmb__ttl")!!.text().replace(TITLE_REGEX, "")
+                title = it.selectFirst(".m-boxListBookProduct2Tmb__ttl, .m-boxSearchListTmb__ttl")!!.text()
+                    .replace(TITLE_REGEX, "")
                 thumbnail_url = it.selectFirst("img.m-bookImage__img")?.absUrl("src")?.replace(THUMBNAIL_REGEX, "l")
             }
         }
@@ -232,6 +213,7 @@ abstract class Dmm :
         private const val PER_PAGE = 100
         private const val HIDE_LOCKED_PREF_KEY = "hide_locked"
         private val THUMBNAIL_REGEX = Regex(".(?=\\.\\w+$)")
-        private val TITLE_REGEX = Regex("(?:(?<=\\s|】)(第?\\d+巻|第?\\d+話|\\d+(?=\\s*$))|（[０-９0-9]+）|【第?\\d+[巻話]】|#\\d+).*$")
+        private val TITLE_REGEX =
+            Regex("(?:(?<=\\s|】)(第?\\d+巻|第?\\d+話|\\d+(?=\\s*$))|（[０-９0-9]+）|【第?\\d+[巻話]】|#\\d+).*$")
     }
 }
