@@ -34,7 +34,9 @@ internal fun Document.parseLibraryPage(): LibraryPage {
         throw IOException("購入済み一覧を取得できませんでした。WebViewでログイン状態と本棚を確認してください。")
     }
     val books = items.map { item ->
-        val link = item.selectFirst("span[data-is-short-title=false] a[href*=/product/]")!!
+        val link = item.select("span[data-is-short-title=false] a[href*=/product/]").firstOrNull { it.text().isNotEmpty() }
+            ?: item.select("a[href*=/product/]").firstOrNull { it.text().isNotEmpty() }
+            ?: throw IOException("購入済み一覧の書籍タイトルを取得できませんでした。WebViewで本棚の表示を確認してください。")
         LibraryBook(
             url = link.absUrl("href").toHttpUrl().pathSegments[1],
             title = link.text(),
@@ -49,9 +51,12 @@ internal fun Document.parseLibraryPage(): LibraryPage {
 
 internal val LIBRARY_CONTENT_SCRIPT = """
     (() => {
-        const ready = document.querySelector('[data-testid="purchasable-library-book"]');
+        const items = Array.from(document.querySelectorAll('[data-testid="purchasable-library-book"]'));
+        const ready = items.length > 0 && items.every(item =>
+            Array.from(item.querySelectorAll('a[href*="/product/"]')).some(link => link.textContent.trim().length > 0)
+        );
         const text = document.body?.innerText || '';
         const empty = text.includes('購入済みの作品がありません') || text.includes('購入済みの商品はありません');
-        return ready || empty ? document.documentElement.outerHTML : null;
+        return ready || (items.length === 0 && empty) ? document.documentElement.outerHTML : null;
     })();
 """.trimIndent()
