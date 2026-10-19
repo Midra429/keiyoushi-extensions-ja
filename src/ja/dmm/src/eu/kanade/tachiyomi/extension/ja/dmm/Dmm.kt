@@ -17,20 +17,22 @@ import keiyoushi.lib.publus.fetchPages
 import keiyoushi.network.addCookie
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
+import keiyoushi.utils.WebViewTimeoutException
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
+import keiyoushi.utils.runWebView
 import keiyoushi.utils.string
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.JsonElement
-import okhttp3.CacheControl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.IOException
+import kotlin.time.Duration.Companion.seconds
 
 @Source
 abstract class Dmm :
@@ -103,8 +105,31 @@ abstract class Dmm :
         val url = "$baseUrl/library/".toHttpUrl().newBuilder()
             .addQueryParameter("page", page.toString())
             .build()
-        val document = client.get(url, desktopHeaders, cacheControl = CacheControl.FORCE_NETWORK).asJsoup()
-        return document.toLibraryMangasPage()
+        val html = try {
+            runWebView<String>(timeout = 30.seconds) {
+                userAgent = desktopHeaders["User-Agent"]!!
+                blockImages = true
+                onPageFinished { pageUrl ->
+                    val current = pageUrl.toHttpUrl()
+                    if (current.host.startsWith("accounts.") || current.encodedPath.startsWith("/service/login/")) {
+                        reject(IOException("購入済みの書籍を表示するには、WebViewでログインしてください。"))
+                    }
+                }
+                onReceivedError { request, error ->
+                    if (request.isForMainFrame) reject(IOException(error.description.toString()))
+                }
+                // The bookshelf is populated by JavaScript after the document loads.
+                poll {
+                    evaluateJs(LIBRARY_CONTENT_SCRIPT) { result ->
+                        result.parseAs<String?>()?.let { resolve(it) }
+                    }
+                }
+                loadUrl(url.toString())
+            }
+        } catch (e: WebViewTimeoutException) {
+            throw IOException("購入済み一覧の読み込みが完了しませんでした。WebViewで本棚が表示できるか確認してください。", e)
+        }
+        return html.asJsoup(url.toString()).parseLibraryPage().toMangasPage()
     }
 
     private fun Response.toMangasPage(): MangasPage {
