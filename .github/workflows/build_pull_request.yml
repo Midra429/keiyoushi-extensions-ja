@@ -20,6 +20,7 @@ env:
 
 jobs:
   prepare:
+    if: github.repository == 'keiyoushi/extensions-source'
     name: Prepare job
     runs-on: ubuntu-latest
     timeout-minutes: 10

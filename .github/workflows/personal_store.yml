@@ -1,0 +1,131 @@
+name: Japanese extension store
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/ja/dmm/**'
+      - 'src/ja/shonenjumpplus/**'
+      - 'src/ja/tonarinoyoungjump/**'
+      - 'src/ja/kadocomi/**'
+      - 'src/ja/bookwalkerjp/**'
+      - 'lib/**'
+      - 'lib-multisrc/gigaviewer/**'
+      - 'core/**'
+      - 'compiler/**'
+      - 'common/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'store.json'
+      - '.github/scripts/**'
+      - '.github/workflows/personal_store.yml'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish signed extensions from main
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: japanese-store-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ja-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  build:
+    if: github.repository == 'Midra429/keiyoushi-extensions-ja'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          java-version: '25'
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: Check release branch
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref != 'refs/heads/main'
+        run: |
+          echo 'Publish is only supported from main.'
+          exit 1
+      - name: Prepare signing key
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          test -n "$SIGNING_KEY" || { echo 'SIGNING_KEY is required'; exit 1; }
+          printf '%s' "$SIGNING_KEY" | base64 --decode > signingkey.jks
+      - name: Build, lint, and test selected extensions
+        env:
+          ALIAS: personal-extensions
+          KEY_STORE_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && inputs.publish && secrets.KEY_STORE_PASSWORD || '' }}
+          KEY_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && inputs.publish && secrets.KEY_STORE_PASSWORD || '' }}
+        run: |
+          mapfile -t MODULES < <(python -c 'import json; print("\n".join(":src:" + m.replace("/", ":") for m in json.load(open("store.json"))["modules"]))')
+          TASKS=()
+          for module in "${MODULES[@]}"; do
+            TASKS+=("${module}:assembleRelease" "${module}:lintRelease")
+          done
+          TASKS+=(":lib-multisrc:gigaviewer:lintRelease" ":src:ja:bookwalkerjp:testDebugUnitTest")
+          ./gradlew "${TASKS[@]}"
+      - name: Generate store index
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+        run: |
+          python -m pip install protobuf==7.36.2
+          keytool -exportcert -keystore signingkey.jks -alias personal-extensions -storepass:env KEY_STORE_PASSWORD -file signing-cert.der
+          fingerprint=$(sha256sum signing-cert.der | cut -d ' ' -f 1)
+          python .github/scripts/build-personal-index.py --output dist --tag "$RELEASE_TAG" --signing-key "$fingerprint"
+      - name: Upload validation builds
+        if: github.event_name != 'workflow_dispatch' || !inputs.publish
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-builds
+          path: |
+            src/ja/*/build/outputs/apk/release/*.apk
+            src/ja/*/build/outputs/jar/release/*.jar
+            src/ja/*/build/reports/lint-results-release.*
+            src/ja/bookwalkerjp/build/reports/tests/testDebugUnitTest/**
+          retention-days: 14
+      - name: Upload signed store
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: signed-store
+          path: dist/*
+          retention-days: 14
+      - name: Remove signing key
+        if: always()
+        run: rm -f signingkey.jks signing-cert.der
+
+  publish:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: signed-store
+          path: dist
+      - name: Publish signed store
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REPOSITORY" = 'Midra429/keiyoushi-extensions-ja'
+          (cd dist && sha256sum -c SHA256SUMS)
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "日本語拡張 $RELEASE_TAG" --notes '個人用日本語拡張ストアの更新です。'
+          gh release upload "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

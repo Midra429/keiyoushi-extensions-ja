@@ -149,7 +149,7 @@ class ReadableProduct(
             isLocked -> "💴 "
             else -> ""
         }
-        val volumePrefix = if (type == "volume") "(Volume) " else ""
+        val volumePrefix = if (type == "volume") "（単行本） " else ""
         url = readableProductId
         name = prefix + volumePrefix + title
         date_upload = Instant.tryParse(displayOpenAt)

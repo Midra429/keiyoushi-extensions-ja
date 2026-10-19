@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.extension.ja.dmm
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
 import eu.kanade.tachiyomi.source.ConfigurableSource
+import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -17,12 +18,15 @@ import keiyoushi.network.addCookie
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
+import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
 import keiyoushi.utils.string
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.JsonElement
+import okhttp3.CacheControl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -32,7 +36,7 @@ import java.io.IOException
 abstract class Dmm :
     KeiSource(),
     ConfigurableSource {
-    private val shopName get() = if (name == "FANZA") "adult" else "general"
+    private val shopName get() = if (baseUrl.toHttpUrl().host == "book.dmm.co.jp") "adult" else "general"
     private val apiUrl get() = "$baseUrl/ajax/bff"
     private val preferences by getPreferencesLazy()
     private val desktopHeaders get() = headersBuilder()
@@ -45,8 +49,14 @@ abstract class Dmm :
         addInterceptor { chain ->
             val response = chain.proceed(chain.request())
             val path = response.request.url.encodedPath
-            if (path.startsWith("/service/login/password") || path == "/shelf/") {
-                throw IOException("Your country is not supported.")
+            val libraryRequest = chain.request().url.encodedPath in listOf("/shelf/", "/library/")
+            if (libraryRequest && (response.request.url.host.startsWith("accounts.") || path.startsWith("/service/login/"))) {
+                response.close()
+                throw IOException("購入済みの書籍を表示するには、WebViewでログインしてください。")
+            }
+            if (!libraryRequest && (path.startsWith("/service/login/password") || path == "/shelf/")) {
+                response.close()
+                throw IOException("お住まいの国・地域では利用できません。")
             }
             response
         }
@@ -73,11 +83,28 @@ abstract class Dmm :
     }
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
+        if (filters.firstInstanceOrNull<LibraryFilter>()?.state == true) {
+            return getLibraryManga(page)
+        }
         val url = "$baseUrl/search/".toHttpUrl().newBuilder()
             .addQueryParameter("searchstr", query)
             .addQueryParameter("page", page.toString())
             .build()
         return client.get(url, desktopHeaders).toMangasPage()
+    }
+
+    override fun getFilterList(data: JsonElement?) = FilterList(
+        Filter.Header("購入済みを選択すると、検索語にかかわらず購入済みの作品を表示します。"),
+        Filter.Header("事前にWebViewでログインしてください。"),
+        LibraryFilter(),
+    )
+
+    private suspend fun getLibraryManga(page: Int): MangasPage {
+        val url = "$baseUrl/library/".toHttpUrl().newBuilder()
+            .addQueryParameter("page", page.toString())
+            .build()
+        val document = client.get(url, desktopHeaders, cacheControl = CacheControl.FORCE_NETWORK).asJsoup()
+        return document.toLibraryMangasPage()
     }
 
     private fun Response.toMangasPage(): MangasPage {
@@ -152,7 +179,7 @@ abstract class Dmm :
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val viewerUrl = chapter.memo["viewerUrl"]?.string?.toHttpUrl()
-            ?: throw Exception("Log in via WebView and purchase this product to read.")
+            ?: throw Exception("WebViewでログインし、この書籍を購入してください。")
 
         val url = viewerUrl.takeIf { it.queryParameter("cid") != null }
             ?: client.get(viewerUrl).use { it.request.url }
@@ -171,7 +198,7 @@ abstract class Dmm :
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
             key = HIDE_LOCKED_PREF_KEY
-            title = "Hide Locked Chapters"
+            title = "ロックされた章を非表示にする"
             setDefaultValue(false)
         }.also(screen::addPreference)
     }

@@ -23,9 +23,9 @@ class DetailsResponse(
         description = buildString {
             productExplanationShort?.let { append("$it\n\n") }
             productExplanationDetails?.let { append(it) }
-            seriesNameKana?.let { append("\n\nAlternative Title: $it") }
-            companyName?.let { append("\n\nPublisher: $it") }
-            labelName?.let { append("\n\nLabel: $it") }
+            seriesNameKana?.let { append("\n\n読み仮名： $it") }
+            companyName?.let { append("\n\n出版社： $it") }
+            labelName?.let { append("\n\nレーベル： $it") }
             copyRightString?.let { append("\n\n$it") }
         }
         thumbnail_url = coverImageUrl
@@ -50,13 +50,29 @@ class HoldBookList(
 
 @Serializable
 class Entity(
-    private val seriesId: Int,
-    private val seriesName: String,
+    private val seriesId: Int? = null,
+    private val seriesName: String? = null,
+    private val productId: String? = null,
+    private val title: String? = null,
     private val imageUrl: String?,
 ) {
+    private val grouped: Boolean
+        get() = seriesId != null && seriesId > 0 && !seriesName.isNullOrBlank()
+
+    val mangaUrl: String
+        get() = if (grouped) {
+            seriesId.toString()
+        } else {
+            val bookId = requireNotNull(productId) { "購入済み書籍のIDを取得できませんでした。" }
+            "de${bookId.removePrefix("de")}"
+        }
+
+    val mangaTitle: String
+        get() = requireNotNull(if (grouped) seriesName else title) { "購入済み書籍のタイトルを取得できませんでした。" }
+
     fun toSManga() = SManga.create().apply {
-        url = seriesId.toString()
-        title = seriesName
+        url = mangaUrl
+        title = mangaTitle
         thumbnail_url = imageUrl?.getHiResCoverFromLegacyUrl()
     }
 }

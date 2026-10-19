@@ -5,19 +5,21 @@ plugins {
 }
 
 keiyoushi {
-    name = "DMM/FANZA"
-    versionCode = 1
+    name = "DMMブックス / FANZAブックス"
+    versionCode = 2
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
     source {
-        name = "DMM"
+        name = "DMMブックス"
+        id = 7153958782880204235L
         lang = "ja"
         baseUrl = "https://book.dmm.com"
     }
 
     source {
-        name = "FANZA"
+        name = "FANZAブックス"
+        id = 6425776937733405129L
         lang = "ja"
         baseUrl = "https://book.dmm.co.jp"
     }

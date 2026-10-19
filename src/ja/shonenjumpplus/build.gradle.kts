@@ -5,13 +5,14 @@ plugins {
 }
 
 keiyoushi {
-    name = "Shonen Jump+"
-    versionCode = 0
+    name = "少年ジャンプ＋"
+    versionCode = 1
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
     theme = "gigaviewer"
 
     source {
+        id = 5161357527629843269L
         lang = "ja"
         baseUrl = "https://shonenjumpplus.com"
     }

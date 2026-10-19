@@ -5,8 +5,8 @@ plugins {
 }
 
 keiyoushi {
-    name = "KadoComi"
-    versionCode = 2
+    name = "カドコミ"
+    versionCode = 3
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 

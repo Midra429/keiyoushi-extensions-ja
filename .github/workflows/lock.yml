@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   lock:
+    if: github.repository == 'keiyoushi/extensions-source'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
