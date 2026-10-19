@@ -168,15 +168,14 @@ abstract class BookWalkerJp :
             chapters = when {
                 !fetchChapters -> chapters
                 wayomi -> seriesDoc.toWayomiChapters(hideLocked, hideFree)
+                details.seriesId == null -> client.get("$baseUrl/${details.mangaUrl}/", desktopHeaders).asJsoup()
+                    .toStandaloneChapter(details, hideLocked, hideFree)?.let { listOf(it.toSChapter()) }.orEmpty()
                 else -> chapterList(details.seriesId.toString(), hideLocked, hideFree, firstListPage)
             },
         )
     }
 
-    override fun getMangaUrl(manga: SManga): String {
-        val seriesId = manga.url.takeUnless { it.startsWith("de") } ?: runBlocking { resolveSeriesId(manga) }
-        return "$baseUrl/series/$seriesId/list/"
-    }
+    override fun getMangaUrl(manga: SManga): String = if (manga.url.startsWith("de")) "$baseUrl/${manga.url}/" else "$baseUrl/series/${manga.url}/list/"
 
     private suspend fun fetchBookDetails(manga: SManga, seriesDoc: Document?, wayomi: Boolean): Pair<DetailsResponse, Document?> {
         var firstListPage: Document? = null
@@ -204,11 +203,6 @@ abstract class BookWalkerJp :
             document = client.get(seriesListUrl(seriesId, page), desktopHeaders).asJsoup()
         }
         return chapters.reversed()
-    }
-
-    private suspend fun resolveSeriesId(manga: SManga): String {
-        if (!manga.url.startsWith("de")) return manga.url
-        return client.get(booksUpdatesUrl(manga.url)).parseAs<List<DetailsResponse>>().first().seriesId.toString()
     }
 
     private fun booksUpdatesUrl(bookId: String): HttpUrl = "$memberApiUrl/books/updates".toHttpUrl().newBuilder()

@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "ブックウォーカー"
-    versionCode = 7
+    versionCode = 8
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
@@ -20,6 +20,7 @@ keiyoushi {
 android {
     sourceSets.named("test") {
         kotlin.directories.add("test")
+        resources.srcDir("test/resources")
     }
 }
 
