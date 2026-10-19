@@ -168,7 +168,7 @@ abstract class BookWalkerJp :
             chapters = when {
                 !fetchChapters -> chapters
                 wayomi -> seriesDoc.toWayomiChapters(hideLocked, hideFree)
-                details.seriesId == null -> client.get("$baseUrl/${details.mangaUrl}/", desktopHeaders).asJsoup()
+                details.seriesId == null -> client.get("$baseUrl/${details.mangaUrl}/", desktopHeaders, cacheControl = CacheControl.FORCE_NETWORK).asJsoup()
                     .toStandaloneChapter(details, hideLocked, hideFree)?.let { listOf(it.toSChapter()) }.orEmpty()
                 else -> chapterList(details.seriesId.toString(), hideLocked, hideFree, firstListPage)
             },
