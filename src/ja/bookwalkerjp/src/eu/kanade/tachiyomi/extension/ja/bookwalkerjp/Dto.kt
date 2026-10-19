@@ -52,7 +52,7 @@ class HoldBookList(
 class Entity(
     private val seriesId: Int? = null,
     private val seriesName: String? = null,
-    private val productId: String? = null,
+    private val uuid: String? = null,
     private val title: String? = null,
     private val imageUrl: String?,
 ) {
@@ -63,7 +63,7 @@ class Entity(
         get() = if (grouped) {
             seriesId.toString()
         } else {
-            val bookId = requireNotNull(productId) { "購入済み書籍のIDを取得できませんでした。" }
+            val bookId = requireNotNull(uuid) { "購入済み書籍のIDを取得できませんでした。" }
             "de${bookId.removePrefix("de")}"
         }
 
