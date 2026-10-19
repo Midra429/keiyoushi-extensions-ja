@@ -62,4 +62,41 @@ class LibraryTest {
     fun `an initial SPA shell must not be treated as a completed empty shelf`() {
         Jsoup.parse("<html><body><div id='root'></div><script src='/library.js'></script></body></html>").parseLibraryPage()
     }
+
+    @Test
+    fun `a text product link is usable without the full title span`() {
+        val page = Jsoup.parse(
+            """
+            <div data-testid="purchasable-library-book">
+                <a href="/product/123/book001/"><img src="/cover.jpg"></a>
+                <a href="/product/123/book001/">購入済み作品</a>
+            </div>
+            """.trimIndent(),
+            "https://book.dmm.com/library/",
+        ).parseLibraryPage()
+        assertEquals("123", page.books.single().url)
+        assertEquals("購入済み作品", page.books.single().title)
+    }
+
+    @Test
+    fun `an empty full title link must not hide a usable text link`() {
+        val page = Jsoup.parse(
+            """
+            <div data-testid="purchasable-library-book">
+                <span data-is-short-title="false"><a href="/product/123/book001/"></a></span>
+                <a href="/product/123/book001/">購入済み作品</a>
+            </div>
+            """.trimIndent(),
+            "https://book.dmm.com/library/",
+        ).parseLibraryPage()
+        assertEquals("購入済み作品", page.books.single().title)
+    }
+
+    @Test(expected = IOException::class)
+    fun `an incomplete book item gives a descriptive parsing error instead of a null pointer`() {
+        Jsoup.parse(
+            """<div data-testid="purchasable-library-book"><a href="/product/123/book001/"><img src="/cover.jpg"></a></div>""",
+            "https://book.dmm.com/library/",
+        ).parseLibraryPage()
+    }
 }
