@@ -60,6 +60,9 @@ abstract class GigaViewer :
      */
     protected open val seriesListIds: List<String> = emptyList()
 
+    // Opt in only after checking the site's episode limit; volumes have a separate, smaller limit.
+    protected open val episodePageSize: Int? = null
+
     // Sites without likes shows 0 for every series, so they keep the order of their lists
     override suspend fun getPopularManga(page: Int): MangasPage {
         val mangas = fetchSeriesList(seriesListIds)
@@ -167,6 +170,11 @@ abstract class GigaViewer :
                 .addQueryParameter("aggregate_id", seriesId)
                 .addQueryParameter("sort_order", "desc")
                 .addQueryParameter("offset", products.size.toString())
+                .apply {
+                    if (type == "episode") {
+                        episodePageSize?.let { addQueryParameter("limit", it.toString()) }
+                    }
+                }
                 .build()
             val result = client.get(url).parseAs<List<ReadableProduct>>()
             if (result.isEmpty()) break

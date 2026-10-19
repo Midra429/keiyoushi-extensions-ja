@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.extension.ja.bookwalkerjp
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LibraryTest {
@@ -43,6 +44,35 @@ class LibraryTest {
         assertEquals(listOf("12466", "de48f2f317-3551-4000-8000-123456789abc"), response.holdBookList.entities.map { it.mangaUrl })
         assertEquals(listOf("キングダム", "単独の書籍"), response.holdBookList.entities.map { it.mangaTitle })
         assertEquals(2, response.holdBookList.totalPage)
+    }
+
+    @Test
+    fun `purchased listings retain server thumbnails without guessing full size cover ids`() {
+        val covers = listOf(
+            "https://rimg.bookwalker.jp/8866361/eUnObgIVNjRTJtVUNQrbaQ__.jpg",
+            "https://c.bookwalker.jp/thumbnailImage_1636688.jpg",
+            "https://rimg.bookwalker.jp/2199dd559dc592b90d4c861f8f7fd7b/eUnObgIVNjRTJtVUNQrbaQ__.jpg",
+        )
+        for (cover in covers) {
+            val entity = json.decodeFromString<Entity>(
+                """{"seriesId":12466,"seriesName":"キングダム","imageUrl":"$cover"}""",
+            )
+            assertEquals("12466", entity.mangaUrl)
+            assertEquals("キングダム", entity.mangaTitle)
+            assertEquals(cover, entity.mangaThumbnailUrl)
+        }
+    }
+
+    @Test
+    fun `purchased listings without a cover still preserve the book identity`() {
+        for (cover in listOf("null", "\"\"")) {
+            val entity = json.decodeFromString<Entity>(
+                """{"uuid":"48f2f317-3551-4000-8000-123456789abc","title":"単独の書籍","imageUrl":$cover}""",
+            )
+            assertEquals("de48f2f317-3551-4000-8000-123456789abc", entity.mangaUrl)
+            assertEquals("単独の書籍", entity.mangaTitle)
+            assertNull(entity.mangaThumbnailUrl)
+        }
     }
 
     @Test(expected = IllegalArgumentException::class)

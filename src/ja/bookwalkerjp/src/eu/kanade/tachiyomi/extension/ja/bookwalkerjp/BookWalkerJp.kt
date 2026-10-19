@@ -138,10 +138,7 @@ abstract class BookWalkerJp :
             val link = it.selectFirst("a.m-book-item__title, .o-tile-ttl a")!!
             SManga.create().apply {
                 title = link.text()
-                val cover = it.selectFirst(".m-thumb__image img, .o-tile-book-img img")
-                    ?.absUrl("data-original")
-                    ?.takeIf(String::isNotEmpty)
-                thumbnail_url = cover?.getHiResCoverFromLegacyUrl()
+                thumbnail_url = it.listingCoverUrl()
                 val href = link.absUrl("href").toHttpUrl().pathSegments
                 url = (if (href.first() == "series") href[1] else href[0])
             }

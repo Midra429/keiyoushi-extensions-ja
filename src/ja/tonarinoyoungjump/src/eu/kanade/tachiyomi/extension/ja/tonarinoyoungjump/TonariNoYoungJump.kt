@@ -5,6 +5,8 @@ import keiyoushi.annotation.Source
 
 @Source
 abstract class TonariNoYoungJump : GigaViewer() {
+    override val episodePageSize = 100
+
     override val seriesListIds = listOf("3269632237330951493", "3269632237330951504")
 
     override fun getFilterOptions() = listOf(

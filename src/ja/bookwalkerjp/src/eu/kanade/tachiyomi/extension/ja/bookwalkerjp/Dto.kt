@@ -78,9 +78,12 @@ class Entity(
     val mangaTitle: String
         get() = requireNotNull(if (grouped) seriesName else title) { "購入済み書籍のタイトルを取得できませんでした。" }
 
+    val mangaThumbnailUrl: String?
+        get() = imageUrl?.takeIf(String::isNotEmpty)
+
     fun toSManga() = SManga.create().apply {
         url = mangaUrl
         title = mangaTitle
-        thumbnail_url = imageUrl?.getHiResCoverFromLegacyUrl()
+        thumbnail_url = mangaThumbnailUrl
     }
 }

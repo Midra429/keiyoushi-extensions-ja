@@ -11,6 +11,8 @@ import java.time.ZoneId
 
 @Source
 abstract class ShonenJumpPlus : GigaViewer() {
+    override val episodePageSize = 100
+
     override suspend fun getPopularManga(page: Int): MangasPage {
         val mangas = fetchSeriesPage("", "ul.series-list li a")
         return MangasPage(mangas, false)
