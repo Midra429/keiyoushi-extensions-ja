@@ -36,13 +36,13 @@ internal fun renderCoverBackground(original: Bitmap): Bitmap {
             val luminance = pixels.sumOf { pixel ->
                 0.2126 * Color.red(pixel) + 0.7152 * Color.green(pixel) + 0.0722 * Color.blue(pixel)
             } / (pixels.size * 255)
-            canvas.drawColor(Color.argb(((0.22 + luminance * 0.30) * 255).roundToInt(), 0, 0, 0))
+            canvas.drawColor(Color.argb(((0.16 + luminance * 0.22) * 255).roundToInt(), 0, 0, 0))
             paint.shader = RadialGradient(
                 output.width / 2f,
                 output.height / 2f,
                 output.height * 0.7f,
                 Color.TRANSPARENT,
-                0x40000000,
+                0x20000000,
                 Shader.TileMode.CLAMP,
             )
             canvas.drawRect(0f, 0f, output.width.toFloat(), output.height.toFloat(), paint)

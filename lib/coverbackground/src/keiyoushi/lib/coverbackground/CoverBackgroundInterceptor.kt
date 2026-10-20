@@ -10,13 +10,15 @@ import okhttp3.ResponseBody.Companion.asResponseBody
 import okio.Buffer
 import java.io.IOException
 
-private const val COVER_MARKER = "keiyoushi-cover-v3:"
-private const val PREVIOUS_COVER_MARKER = "keiyoushi-cover-v2:"
+private const val COVER_MARKER = "keiyoushi-cover-v4:"
+private const val PREVIOUS_COVER_MARKER = "keiyoushi-cover-v3:"
+private const val OLDER_COVER_MARKER = "keiyoushi-cover-v2:"
 private const val LEGACY_COVER_MARKER = "keiyoushi-cover-v1:"
 
 private fun String.originalCoverFragment(): String? = when {
     startsWith(COVER_MARKER) -> removePrefix(COVER_MARKER)
     startsWith(PREVIOUS_COVER_MARKER) -> removePrefix(PREVIOUS_COVER_MARKER)
+    startsWith(OLDER_COVER_MARKER) -> removePrefix(OLDER_COVER_MARKER)
     startsWith(LEGACY_COVER_MARKER) -> removePrefix(LEGACY_COVER_MARKER)
     else -> null
 }
