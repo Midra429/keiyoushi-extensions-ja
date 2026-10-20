@@ -62,8 +62,8 @@ class BackgroundTest {
     }
 
     @Test
-    fun `backgrounds are slightly brighter while retaining adaptive dimming`() {
-        for ((color, expected) in listOf(Color.WHITE to 104, Color.rgb(128, 128, 128) to 68)) {
+    fun `backgrounds retain adaptive dimming with a gentle vignette`() {
+        for ((color, expected) in listOf(Color.WHITE to 146, Color.rgb(128, 128, 128) to 86)) {
             val original = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
             original.eraseColor(color)
             val output = renderCoverBackground(original)
@@ -75,6 +75,9 @@ class BackgroundTest {
                 )
                 assertEquals(Color.red(background), Color.green(background))
                 assertEquals(Color.red(background), Color.blue(background))
+                val corner = Color.red(output.getPixel(0, 0))
+                assertTrue(corner < Color.red(background))
+                assertTrue(corner >= Color.red(background) - 7)
                 assertEquals(color, output.getPixel(60, 90))
             } finally {
                 original.recycle()

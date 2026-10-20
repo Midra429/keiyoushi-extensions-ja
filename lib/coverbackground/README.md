@@ -13,7 +13,7 @@ to integer pixels so unscaled covers are not softened by half-pixel interpolatio
 Small opaque foregrounds retain their decoded pixels; large covers are still resized
 to the output limit. PNG may use more cover-cache storage than JPEG. Padding is filled with a
 center-cropped copy, blurred at low resolution, adaptively dimmed according to its
-brightness with a 22–52% black overlay, and finished with a subtle vignette. Large source images are downsampled
+brightness with a 16–38% black overlay, and finished with a gentle vignette (at most 12.5% black). Large source images are downsampled
 before decoding to bound memory usage. No extra network requests or external image
 processing service are used.
 
@@ -23,7 +23,8 @@ full-screen viewing, saving, and sharing; an extension cannot distinguish those 
 Existing library entries need a metadata refresh to acquire the marked thumbnail URL.
 The marker changes the cover cache key; change its version when changing the rendering.
 Version 2 slightly lightens the background. Version 3 preserves foreground quality
-with pixel-aligned placement and PNG encoding. Version 1 and 2 URLs are still processed,
+with pixel-aligned placement and PNG encoding. Version 4 lightens the background further
+and halves the vignette strength. Version 1–3 URLs are still processed,
 and marking them again upgrades them without losing existing fragments.
 
 Validation:
