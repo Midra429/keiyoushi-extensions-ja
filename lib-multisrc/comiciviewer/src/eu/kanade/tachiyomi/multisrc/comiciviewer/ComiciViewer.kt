@@ -37,14 +37,18 @@ abstract class ComiciViewer :
         .set("rsc", "1")
         .build()
 
-    override fun OkHttpClient.Builder.configureClient() = addInterceptor(ImageInterceptor())
+    protected open fun coverUrl(url: String?): String? = url
+
+    override fun OkHttpClient.Builder.configureClient() = configureComiciViewerClient()
+
+    protected fun OkHttpClient.Builder.configureComiciViewerClient() = addInterceptor(ImageInterceptor())
 
     override suspend fun getPopularManga(page: Int): MangasPage {
         val result = client.get("$baseUrl$RANKING_PATH", rscHeaders).extractNextJs<RankingResponse> {
             it is JsonObject && (it["className"] as? JsonPrimitive)?.content == "series-list mode-ranking"
         }
 
-        val mangas = result?.children.orEmpty().map { it.toSManga() }
+        val mangas = result?.children.orEmpty().map { it.toSManga(::coverUrl) }
         return MangasPage(mangas, false)
     }
 
@@ -59,7 +63,7 @@ abstract class ComiciViewer :
                 .build()
 
             val result = client.get(url).parseAs<SearchApiResponse>().searchResult.series
-            val mangas = result.series.map { it.toSManga() }
+            val mangas = result.series.map { it.toSManga(::coverUrl) }
             val hasNextPage = result.total > page * SEARCH_PAGE_SIZE
             return MangasPage(mangas, hasNextPage)
         }
@@ -79,7 +83,7 @@ abstract class ComiciViewer :
             SManga.create().apply {
                 url = it.selectFirst("a.series-list-item-link")!!.absUrl("href").toHttpUrl().seriesHash()
                 title = it.selectFirst("div.series-list-item-h span[data-e2e=sliTitle]")!!.text()
-                thumbnail_url = it.selectFirst("img.series-list-item-img")?.absUrl("src")
+                thumbnail_url = coverUrl(it.selectFirst("img.series-list-item-img")?.absUrl("src"))
             }
         }
 
@@ -90,7 +94,7 @@ abstract class ComiciViewer :
     /** Series links come as `/series/<hash>`, `/series/<hash>/new` or `/<magazine>/series/<hash>`. */
     protected open fun HttpUrl.seriesHash(): String {
         val index = pathSegments.indexOf("series")
-        require(index != -1) { "Unrecognized series url: $this" }
+        require(index != -1) { "作品のURLを認識できません：$this" }
         return pathSegments[index + 1]
     }
 
@@ -128,7 +132,7 @@ abstract class ComiciViewer :
         }.reversed()
 
         SMangaUpdate(
-            series.summary.toSManga(),
+            series.summary.toSManga(::coverUrl),
             chapterList,
         )
     }
@@ -143,7 +147,7 @@ abstract class ComiciViewer :
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         if (chapter.memo["login"]?.boolean == true) {
-            throw Exception("This chapter is free but you need to log in via WebView and refresh the entry.")
+            throw Exception("この章は無料ですが、ログインが必要です。WebViewでログインして作品を更新してください。")
         }
 
         val episode = client.get("$apiUrl/episodes/${chapter.url}", CacheControl.FORCE_NETWORK).parseAs<EpisodeDetailsApiResponse>().episode
@@ -151,7 +155,7 @@ abstract class ComiciViewer :
             ?: return episode.content
                 .mapNotNull { if (it.type == "image") it.url else null }
                 .mapIndexed { index, url -> Page(index, imageUrl = url) }
-                .ifEmpty { throw Exception("Log in via WebView and purchase this chapter to read.") }
+                .ifEmpty { throw Exception("この章を読むには、WebViewでログインして購入してください。") }
 
         val memberJwt = try {
             client.get("$apiUrl/user/info", CacheControl.FORCE_NETWORK).parseAs<UserInfoApiResponse>().user?.id
@@ -183,14 +187,14 @@ abstract class ComiciViewer :
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {
             key = SHOW_LOCKED_PREF_KEY
-            title = "Show Locked Chapters"
+            title = "ロックされた章を表示する"
             setDefaultValue(true)
         }.also(screen::addPreference)
 
         SwitchPreferenceCompat(screen.context).apply {
             key = SHOW_CAMPAIGN_LOCKED_PREF_KEY
-            title = "Show 'Require Login' Chapters"
-            summary = "Shows chapters that are free but require login."
+            title = "ログインが必要な章を表示する"
+            summary = "無料で読めますが、ログインが必要な章を表示します。"
             setDefaultValue(true)
         }.also(screen::addPreference)
     }

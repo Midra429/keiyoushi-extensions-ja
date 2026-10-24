@@ -10,8 +10,10 @@ on:
       - 'src/ja/kadocomi/**'
       - 'src/ja/bookwalkerjp/**'
       - 'src/ja/onepunchman/**'
+      - 'src/ja/bibibicomic/**'
       - 'lib/**'
       - 'lib-multisrc/gigaviewer/**'
+      - 'lib-multisrc/comiciviewer/**'
       - 'core/**'
       - 'compiler/**'
       - 'common/**'
@@ -76,7 +78,7 @@ jobs:
           for module in "${MODULES[@]}"; do
             TASKS+=("${module}:assembleRelease" "${module}:lintRelease")
           done
-          TASKS+=(":lib-multisrc:gigaviewer:lintRelease" ":src:ja:dmm:testDebugUnitTest" ":src:ja:bookwalkerjp:testDebugUnitTest")
+          TASKS+=(":lib-multisrc:gigaviewer:lintRelease" ":lib-multisrc:comiciviewer:lintRelease" ":src:ja:dmm:testDebugUnitTest" ":src:ja:bookwalkerjp:testDebugUnitTest")
           ./gradlew "${TASKS[@]}"
       - name: Generate store index
         if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'

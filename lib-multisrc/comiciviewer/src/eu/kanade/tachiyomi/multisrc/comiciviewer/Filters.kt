@@ -7,4 +7,4 @@ open class SelectFilter(displayName: String, private val vals: List<Pair<String,
         get() = vals[state].second
 }
 
-class CategoryFilter(options: List<Pair<String, String>>) : SelectFilter("Filter by", options)
+class CategoryFilter(options: List<Pair<String, String>>) : SelectFilter("絞り込み", options)

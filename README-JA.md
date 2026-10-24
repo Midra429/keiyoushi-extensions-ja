@@ -14,13 +14,14 @@
 | `src/ja/kadocomi` | カドコミ | 表示名、設定、検索、詳細、メッセージを日本語化 |
 | `src/ja/bookwalkerjp` | ブックウォーカー | 日本語化、購入済み一覧の取得条件と書籍IDの扱いを修正、無料章を非表示にする設定を追加 |
 | `src/ja/onepunchman` | ワンパンマン（ＯＮＥ） | ＯＮＥ公式サイトの話一覧・ページ画像の取得に対応 |
+| `src/ja/bibibicomic` | ビビビコミック | 表示名、共通設定・検索フィルター・ログイン案内を日本語化、共通表紙処理を適用 |
 
 拡張機能が生成する表示テキストを日本語にしています。作品名や説明などサイトから受け取る内容、アプリ本体・Android・ネットワークライブラリのメッセージはそれぞれの提供元に従います。
 
 ## 配布の状態
 
 ローカルの実装と個人用署名でのビルドが完了しています。上流の正式なフォーク上で、改修と配布設定を管理します。
-`store.json`には配布対象の6モジュールのみを登録しています。DMMとFANZAが別ソースのため、6拡張・7ソースです。
+`store.json`には配布対象の7モジュールのみを登録しています。DMMとFANZAが別ソースのため、7拡張・8ソースです。
 
 公開後に追加するストアURL：
 
@@ -59,7 +60,7 @@ https://github.com/Midra429/keiyoushi-extensions-ja/releases/latest/download/ind
 
 ## ビルドと検証
 
-`.github/workflows/personal_store.yml`が対象6拡張をビルド・検証します。通常のpushとプルリクエストでは検証のみ行い、配布用の署名鍵は使いません。このときのActions成果物はデバッグ署名の検証用です。
+`.github/workflows/personal_store.yml`が対象7拡張をビルド・検証します。通常のpushとプルリクエストでは検証のみ行い、配布用の署名鍵は使いません。このときのActions成果物はデバッグ署名の検証用です。
 
 更新を公開する場合は、Actionsの「Japanese extension store」を`main`から手動実行し、`publish`を有効にします。`SIGNING_KEY`（個人用署名鍵のBase64）、`KEY_STORE_PASSWORD`をリポジトリのActions Secretsへ登録する必要があります。公開用の署名鍵は初回リリースと同じものを使ってください。
 
@@ -74,7 +75,9 @@ JDK 25、Android SDK 37、Python 3とProtobuf 7.36.2を使います。上流の�
   :src:ja:tonarinoyoungjump:assembleRelease :src:ja:tonarinoyoungjump:lintRelease \
   :src:ja:kadocomi:assembleRelease :src:ja:kadocomi:lintRelease \
   :src:ja:onepunchman:assembleRelease :src:ja:onepunchman:lintRelease \
+  :src:ja:bibibicomic:assembleRelease :src:ja:bibibicomic:lintRelease \
   :lib-multisrc:gigaviewer:lintRelease \
+  :lib-multisrc:comiciviewer:lintRelease \
   :src:ja:bookwalkerjp:testDebugUnitTest
 ```
 
@@ -92,13 +95,15 @@ python .github/scripts/build-personal-index.py \
 
 ## 実機確認項目
 
-- 6拡張の表示名、設定、検索フィルター、章の接頭辞を確認する。
+- 7拡張の表示名、設定、検索フィルター、章の接頭辞を確認する。
 - DMMとFANZAそれぞれで、ログアウト時はログイン案内が表示されること、ログイン後は実際の本棚と購入済み一覧が一致することを確認する。
-- DMM/FANZAで購入済み一覧の2ページ目以降も表示されることを確認する。本棚のHTML構造が変更されている場合はログイン後のページで再調整が必要。
+- DMM/FANZAで購入済み一覧の2ページ目以降も表示されることを確認する。購入済み一覧は`/ajax/bff/library/`のJSON APIを使用する。
 - ブックウォーカーで購入一覧と実際のアカウントの所持作品が一致し、シリーズ未登録の単独書籍でもエラーが出ないことを確認する。
 - ブックウォーカーで通常の購入巻が残り、無料公開巻・期間限定無料版が消えることを確認する。
 - 無料章設定をオフにして一覧を更新すると、無料章が戻ることを確認する。
-- 公開後、ストアURLを追加して6拡張が表示・インストールできることを確認する。
+- ビビビコミックでランキング・更新順・検索・詳細の表紙が2:3のぼかし背景付きで表示され、本文画像は正常に読めることを確認する。既存ライブラリの表紙はメタデータ更新後に確認する。
+- ビビビコミックで「ロックされた章を表示する」「ログインが必要な章を表示する」の切り替えと、WebViewでのログイン・購入案内を確認する。
+- 公開後、ストアURLを追加して7拡張が表示・インストールできることを確認する。
 
 ## ライセンスと上流
 

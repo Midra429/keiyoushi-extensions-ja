@@ -25,10 +25,10 @@ class Ranking(
     private val hash: String,
     private val img: RankingImg,
 ) {
-    fun toSManga() = SManga.create().apply {
+    fun toSManga(coverUrl: (String?) -> String? = { it }) = SManga.create().apply {
         url = hash
         title = img.alt
-        thumbnail_url = img.thumbnail
+        thumbnail_url = coverUrl(img.thumbnail)
     }
 }
 
@@ -93,7 +93,7 @@ class SeriesSummary(
     private val tag: List<Tag>?,
     private val isCompleted: Boolean?,
 ) {
-    fun toSManga(): SManga = SManga.create().apply {
+    fun toSManga(coverUrl: (String?) -> String? = { it }): SManga = SManga.create().apply {
         url = id
         title = name
         author = this@SeriesSummary.author?.joinToString { it.name }
@@ -103,7 +103,7 @@ class SeriesSummary(
             ?.parseAs<List<DescriptionNode>>()
             ?.joinToString("\n") { node -> node.children.joinToString("") { it.resolveText().orEmpty() } }
         genre = tag?.joinToString { it.name }
-        thumbnail_url = images?.firstOrNull()?.url
+        thumbnail_url = coverUrl(images?.firstOrNull()?.url)
         status = if (isCompleted == true) SManga.COMPLETED else SManga.ONGOING
     }
 }
