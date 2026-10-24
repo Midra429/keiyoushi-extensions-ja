@@ -27,6 +27,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -44,6 +45,11 @@ abstract class Webnex :
     ConfigurableSource {
 
     private val preferences by getPreferencesLazy()
+
+    // The site rejects the app's default Cache-Control (max-age=600)
+    override fun OkHttpClient.Builder.configureClient() = addNetworkInterceptor { chain ->
+        chain.proceed(chain.request().newBuilder().removeHeader("Cache-Control").build())
+    }
 
     override suspend fun getPopularManga(page: Int): MangasPage = getSearchManga(page, "", FilterList(SortFilter("coverage"), RatingFilter(preferences.rating)))
 
@@ -171,7 +177,8 @@ abstract class Webnex :
         val preferredGroups = commaList(PREF_PREFERRED_GROUPS, DEFAULT_PREFERRED_GROUPS)
         val onePerChapter = preferences.getString(PREF_CHAPTER_LIST, ONE_PER_GROUP) == ONE_PER_CHAPTER
 
-        return document.select("li.ch-row").flatMap { element ->
+        // Hidden rows are decoys the site's own page never shows
+        return document.select("li.ch-row:not([aria-hidden=true]):not([style*=display:none])").flatMap { element ->
             val link = element.selectFirst("a.ch-link")!!
             val number = link.selectFirst(".ch-num")!!
             val title = link.selectFirst(".ch-title")!!
